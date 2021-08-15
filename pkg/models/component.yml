@@ -1,0 +1,57 @@
+the-component-name:
+  description: "" # 描述
+  form: server # 部署形态
+  version: v1.2.3 # 版本
+  enabled: false # 是否部署
+  external: false # 是否使用外部组件
+
+  # 提供的服务，一个组件可以提供 0 个，1 个或多个服务
+  services:
+    # 一个服务 1 个端口
+    # 如果组件对外暴露多个端口，必须定义为多个 service
+    # 服务器的名字可以任意，选择有意义的名字更合适
+    default:
+      description: ""
+      scheme:
+      host: ""
+      ipv4: ""
+      ipv6: ""
+      port: 80
+      addr: ""
+      endpoints: ""
+      url: ""
+      lb_port: 10080
+      pub_port: 80
+    http:
+      port: 8080
+    https:
+      port: 8443
+    rpc:
+      port: 8081
+
+  computed:
+    default:
+      scheme: ""
+      host: ""
+      port: 8080
+      addr: ""
+      endpoints: ""
+
+  # 依赖的服务（其它组件提供的服务，不能依赖自身组件）
+  # Todo, check cycle
+  requires:
+    - component: A
+      serviceName: default
+    - component: B
+      serviceName: default
+  dependencies:
+    - A
+    - B
+
+  vars:
+    var1: "hello"
+    var2: "world"
+
+  tags:
+    tag1: "hello"
+    tag2: "world"

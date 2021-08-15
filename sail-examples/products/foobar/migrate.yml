@@ -1,0 +1,7 @@
+- name: create dir 1
+  make_dir:
+    path: /tmp/dir1
+
+- name: create dir 2
+  make_dir:
+    path: /tmp/dir1

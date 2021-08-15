@@ -1,0 +1,294 @@
+package models
+
+import (
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"path"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"github.com/imdario/mergo"
+	"github.com/jinzhu/copier"
+	"gopkg.in/yaml.v3"
+)
+
+const DefaultPlaybook string = "sail"
+const DefaultPlaybookFile string = "sail.yml"
+
+type Product struct {
+	Name string `json:"Name,omitempty"  yaml:"Name,omitempty"`
+
+	// zone vars of product
+	Components map[string]*Component `json:"Components,omitempty" yaml:"Components,omitempty"`
+	// zone components of product
+	Vars map[string]interface{} `json:"Vars,omitempty" yaml:"Vars,omitempty"`
+
+	// default vars of product, it should be read only
+	vars map[string]interface{}
+	// default components of product, it should be read only
+	components map[string]Component
+
+	baseDir        string
+	dir            string
+	componentsFile string
+	componentsDir  string
+	varsFile       string
+	runFile        string
+	migrateFile    string
+
+	defaultPlaybook string
+}
+
+func (p *Product) Compute(cmdb *CMDB) error {
+	for k, c := range p.Components {
+		if err := c.Compute(cmdb); err != nil {
+			msg := fmt.Sprintf("Product comoponent (%s) compute failed, err: %s", k, err)
+			return errors.New(msg)
+		}
+	}
+
+	return nil
+}
+
+func NewProduct(name string, baseDir string) *Product {
+	p := &Product{
+		Name:       name,
+		Components: make(map[string]*Component),
+		Vars:       make(map[string]interface{}),
+
+		components: make(map[string]Component),
+		vars:       make(map[string]interface{}),
+
+		baseDir:        baseDir,
+		dir:            path.Join(baseDir, name),
+		varsFile:       path.Join(baseDir, name, "vars.yml"),
+		runFile:        path.Join(baseDir, name, DefaultPlaybookFile),
+		componentsFile: path.Join(baseDir, name, "components.yml"),
+		componentsDir:  path.Join(baseDir, name, "components"),
+		migrateFile:    path.Join(baseDir, name, "migrate.yml"),
+
+		defaultPlaybook: "run",
+	}
+
+	return p
+}
+
+func (p *Product) DefaultPlaybook() string {
+	return p.defaultPlaybook
+}
+
+// Init will init product internal fields
+func (p *Product) Init() error {
+	if err := p.loadDefaultVars(); err != nil {
+		msg := fmt.Sprintf("load product (%s) vars failed, err: %s", p.Name, err)
+		return errors.New(msg)
+	}
+
+	if err := p.loadDefaultComponents(); err != nil {
+		msg := fmt.Sprintf("load product (%s) components failed, err: %s", p.Name, err)
+		return errors.New(msg)
+	}
+
+	return nil
+}
+
+func (p *Product) HasComponent(name string) bool {
+	_, exists := p.Components[name]
+	return exists
+}
+
+func (p *Product) SetComponentEnabled(name string, flag bool) error {
+	if !p.HasComponent(name) {
+		msg := fmt.Sprintf("can not enable component, the product does not have this component (%s)", name)
+		return errors.New(msg)
+	}
+
+	p.Components[name].Enabled = flag
+	if flag {
+		p.Components[name].External = false
+	}
+	return nil
+}
+
+func (p *Product) SetComponentExternalEnabled(name string, flag bool) error {
+	if !p.HasComponent(name) {
+		msg := fmt.Sprintf("can not enable component, the product does not have this component (%s)", name)
+		return errors.New(msg)
+	}
+
+	p.Components[name].External = flag
+	if flag {
+		p.Components[name].Enabled = false
+	}
+	return nil
+}
+
+func (p *Product) ComponentList() []string {
+	out := []string{}
+	for k := range p.Components {
+		out = append(out, k)
+	}
+
+	sorted := sort.StringSlice(out)
+	sort.Sort(sorted)
+	return sorted
+}
+
+func (p *Product) loadDefaultVars() error {
+	b, err := os.ReadFile(p.varsFile)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			msg := fmt.Sprintf("not found default vars file (%s) for product (%s)", p.varsFile, p.Name)
+			return errors.New(msg)
+		}
+		return err
+	}
+
+	if err := yaml.Unmarshal(b, &p.vars); err != nil {
+		msg := fmt.Sprintf("unmarshal vars for product (%s) failed, err: %s", p.Name, err)
+		return errors.New(msg)
+	}
+
+	m := make(map[string]interface{})
+	if err := copier.Copy(&m, p.vars); err != nil {
+		msg := fmt.Sprintf("copy default vars failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	p.Vars = m
+
+	return nil
+}
+
+func (p *Product) loadDefaultComponents() error {
+	componentFiles := []string{}
+	componentFiles = append(componentFiles, p.componentsFile)
+
+	// store all found component yaml files under components directory
+	visitFn := func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() {
+			componentFiles = append(componentFiles, path)
+		}
+		return nil
+	}
+	filepath.WalkDir(p.componentsDir, visitFn)
+
+	errs := []error{}
+	for _, file := range componentFiles {
+		if err := p.loadComponentFile(file); err != nil {
+			msg := fmt.Sprintf("load component file (%s) failed, err: %s", file, err)
+			errs = append(errs, errors.New(msg))
+		}
+	}
+
+	if len(errs) != 0 {
+		errList := []string{""}
+		for _, e := range errs {
+			errList = append(errList, e.Error())
+		}
+		errString := strings.Join(errList, "\n")
+		return errors.New(errString)
+	}
+
+	// After loading all components.yml, copy p.components to p.Components
+	var c map[string]*Component
+	if err := copier.CopyWithOption(&c, p.components, copier.Option{DeepCopy: true}); err != nil {
+		msg := fmt.Sprintf("copy default components failed, err: %s", err)
+		return errors.New(msg)
+	}
+	p.Components = c
+
+	return nil
+}
+
+func (p *Product) loadComponentFile(file string) error {
+	b, err := os.ReadFile(file)
+	if err != nil {
+		msg := fmt.Sprintf("ReadFile failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	m := make(map[string]interface{})
+	if err := yaml.Unmarshal(b, &m); err != nil {
+		msg := fmt.Sprintf("yaml unmarshal file (%s) failed, err: %s", file, err)
+		return errors.New(msg)
+	}
+
+	for k, v := range m {
+		if _, exists := p.components[k]; exists {
+			msg := fmt.Sprintf("found duplicate component definition for component(%s)", k)
+			return errors.New(msg)
+		}
+
+		c, err := newComponentFromValue(k, v)
+		if err != nil {
+			return err
+		}
+		p.components[k] = *c
+	}
+
+	return nil
+}
+
+func (p *Product) LoadZone(zoneVarsFile string) error {
+	b, err := os.ReadFile(zoneVarsFile)
+	if err != nil {
+		msg := fmt.Sprintf("read file failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	m := map[string]interface{}{}
+	if err := yaml.Unmarshal(b, &m); err != nil {
+		msg := fmt.Sprintf("unmarshal vars for failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	for varKey, varValue := range m {
+		// varKey is not a component
+		if !p.HasComponent(varKey) {
+			p.Vars[varKey] = varValue
+			continue
+		}
+
+		comp, err := newComponentFromValue(varKey, varValue)
+		if err != nil {
+			return err
+		}
+
+		// p.Components originally stores default components of the product,
+		// now we merge the component value loaded from zone vars file into it.
+		if mergo.Merge(p.Components[varKey], comp, mergo.WithOverride); err != nil {
+			msg := fmt.Sprintf("merge failed for component (%s) failed, err: %s", varKey, err)
+			return errors.New(msg)
+		}
+	}
+
+	return nil
+}
+
+func (p *Product) Check() error {
+	errs := []error{}
+	for _, c := range p.Components {
+		if err := c.Check(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) == 0 {
+		return nil
+	}
+
+	errmsgs := []string{}
+	for _, err := range errs {
+		errmsgs = append(errmsgs, err.Error())
+	}
+
+	msg := fmt.Sprintf("Check product (%s) faield, err: %s", p.Name, strings.Join(errmsgs, "; "))
+	return errors.New(msg)
+}

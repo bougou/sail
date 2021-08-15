@@ -1,0 +1,7 @@
+target_name: ""
+zone_name: ""
+install_dir: /opt
+data_dir: /data
+log_dir: /log
+a:
+  b: 10
