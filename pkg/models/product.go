@@ -165,7 +165,10 @@ func (p *Product) loadDefaultVars() error {
 
 func (p *Product) loadDefaultComponents() error {
 	componentFiles := []string{}
-	componentFiles = append(componentFiles, p.componentsFile)
+
+	if _, err := os.Stat(p.componentsFile); err == nil {
+		componentFiles = append(componentFiles, p.componentsFile)
+	}
 
 	// store all found component yaml files under components directory
 	visitFn := func(path string, entry fs.DirEntry, err error) error {

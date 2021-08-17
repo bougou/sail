@@ -6,8 +6,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/models"
-	cmdutil "github.com/bougou/sail/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -19,8 +19,8 @@ func NewCmdListComponents(sailOption *models.SailOption) *cobra.Command {
 		Short: "list-components",
 		Long:  "list-components",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(o.Complete(cmd, args))
-			cmdutil.CheckErr(o.Run())
+			common.CheckErr(o.Complete(cmd, args))
+			common.CheckErr(o.Run())
 		},
 	}
 

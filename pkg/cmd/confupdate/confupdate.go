@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/options"
-	cmdutil "github.com/bougou/sail/pkg/util"
 
 	"github.com/bougou/sail/pkg/models"
 	"github.com/spf13/cobra"
@@ -19,7 +19,7 @@ func NewCmdConfUpdate(sailOption *models.SailOption) *cobra.Command {
 		Short: "conf-update",
 		Long:  "conf-update",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(o.Run())
+			common.CheckErr(o.Run())
 		},
 	}
 

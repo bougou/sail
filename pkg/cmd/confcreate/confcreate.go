@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/models"
 	"github.com/bougou/sail/pkg/options"
-	cmdutil "github.com/bougou/sail/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -26,9 +26,9 @@ func NewCmdConfCreate(sailOption *models.SailOption) *cobra.Command {
 		Short: "conf-create",
 		Long:  "conf-create",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(o.Complete(cmd, args))
-			cmdutil.CheckErr(o.Validate())
-			cmdutil.CheckErr(o.Run())
+			common.CheckErr(o.Complete(cmd, args))
+			common.CheckErr(o.Validate())
+			common.CheckErr(o.Run())
 		},
 	}
 

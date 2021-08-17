@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/models"
 	"github.com/bougou/sail/pkg/options"
-	cmdutil "github.com/bougou/sail/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +19,7 @@ func NewCmdUpgrade(sailOption *models.SailOption) *cobra.Command {
 		Short: "upgrade",
 		Long:  "upgrade",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(o.Run())
+			common.CheckErr(o.Run(args))
 		},
 	}
 
@@ -59,7 +59,7 @@ func (o *UpgradeOptions) Validate() error {
 	return nil
 }
 
-func (o *UpgradeOptions) Run() error {
+func (o *UpgradeOptions) Run(args []string) error {
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if err := zone.Load(true); err != nil {
 		return err
@@ -89,8 +89,13 @@ func (o *UpgradeOptions) Run() error {
 
 	rz := models.NewRunningZone(zone, zone.Product.DefaultPlaybook())
 
-	args := []string{
-		fmt.Sprintf("--tags %s", strings.Join(ansiblePlaybookTags, ",")),
+	playbookArgs := []string{}
+	if len(ansiblePlaybookTags) != 0 {
+		// Note, CANNOT pass "--tags tag1,tag2" as one item into the slice
+		playbookArgs = append(playbookArgs, "--tags", strings.Join(ansiblePlaybookTags, ","))
 	}
-	return rz.Run(args)
+
+	playbookArgs = append(playbookArgs, args...)
+
+	return rz.Run(playbookArgs)
 }

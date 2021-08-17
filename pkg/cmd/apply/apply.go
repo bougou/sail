@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/ansible"
 	"github.com/bougou/sail/pkg/models"
-	cmdutil "github.com/bougou/sail/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -19,10 +19,9 @@ func NewCmdApply(sailOption *models.SailOption) *cobra.Command {
 		Short: "apply",
 		Long:  "apply",
 		Run: func(cmd *cobra.Command, args []string) {
-
 			// cmd here refers to parent command
-			cmdutil.CheckErr(o.Complete(cmd, args))
-			cmdutil.CheckErr(o.Run(args))
+			common.CheckErr(o.Complete(cmd, args))
+			common.CheckErr(o.Run(args))
 		},
 	}
 

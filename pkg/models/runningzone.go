@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/bougou/sail/pkg/util"
+	newexec "github.com/bougou/gopkg/exec"
 )
 
 //go:embed ansible.cfg
@@ -36,6 +36,12 @@ func NewRunningZone(zone *Zone, playbook string) *RunningZone {
 		"@" + zone.VarsFile,
 		"-e",
 		"@" + zone.ComputedFile,
+		"-e",
+		"products_dir=" + zone.sailOption.ProductsDir,
+		"-e",
+		"packages_dir=" + zone.sailOption.PackagesDir,
+		"-e",
+		"targets_dir=" + zone.sailOption.TargetsDir,
 	}
 
 	return rz
@@ -77,8 +83,8 @@ func (rz *RunningZone) Run(args []string) error {
 	// here, we specifically set to os.Stdin to simulate tty
 	cmd.Stdin = os.Stdin
 
-	cmdWrapper := util.NewExecCmdWrapper(cmd, env...)
-
+	cmdWrapper := newexec.NewCmdEnvWrapper(cmd, env...)
+	cmdWrapper.SetDebug(true)
 	return cmdWrapper.Run()
 
 }
