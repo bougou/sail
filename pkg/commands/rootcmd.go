@@ -1,4 +1,4 @@
-package cmd
+package commands
 
 import (
 	"flag"
@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bougou/sail/pkg/cmd/apply"
-	"github.com/bougou/sail/pkg/cmd/confcreate"
-	"github.com/bougou/sail/pkg/cmd/confupdate"
-	"github.com/bougou/sail/pkg/cmd/listcomponents"
-	"github.com/bougou/sail/pkg/cmd/upgrade"
+	"github.com/bougou/sail/pkg/commands/apply"
+	"github.com/bougou/sail/pkg/commands/confcreate"
+	"github.com/bougou/sail/pkg/commands/confupdate"
+	"github.com/bougou/sail/pkg/commands/listcomponents"
+	"github.com/bougou/sail/pkg/commands/upgrade"
 	"github.com/bougou/sail/pkg/models"
 	"github.com/mitchellh/go-homedir"
 

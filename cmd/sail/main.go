@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bougou/sail/pkg/cmd"
+	"github.com/bougou/sail/pkg/commands"
 )
 
 func main() {
-	rootCmd := cmd.NewSailCommand()
+	rootCmd := commands.NewSailCommand()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
