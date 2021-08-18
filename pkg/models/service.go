@@ -126,6 +126,31 @@ func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
 	}
 	svcComputed.Port = port
 
+	if s.Addr != "" {
+		svcComputed.Addr = s.Addr
+	} else {
+		svcComputed.Addr = fmt.Sprintf("%s:%d", svcComputed.Host, svcComputed.Port)
+	}
+
+	if len(s.Endpoints) != 0 {
+		for _, v := range s.Endpoints {
+			svcComputed.Endpoints = append(s.Endpoints, v)
+		}
+	} else {
+		svcComputed.Endpoints = append(svcComputed.Endpoints, svcComputed.Addr)
+	}
+
+	if len(s.URLs) != 0 {
+		for _, v := range s.URLs {
+			svcComputed.URLs = append(svcComputed.URLs, v)
+		}
+	} else {
+		for _, v := range svcComputed.Endpoints {
+			url := fmt.Sprintf("%s://%s", svcComputed.Scheme, v)
+			svcComputed.URLs = append(svcComputed.URLs, url)
+		}
+	}
+
 	return svcComputed, nil
 }
 
