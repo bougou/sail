@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bougou/sail/pkg/ansible"
 	"github.com/imdario/mergo"
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v3"
@@ -62,15 +63,14 @@ func NewProduct(name string, baseDir string) *Product {
 		components: make(map[string]Component),
 		vars:       make(map[string]interface{}),
 
-		baseDir:        baseDir,
-		dir:            path.Join(baseDir, name),
-		varsFile:       path.Join(baseDir, name, "vars.yml"),
-		runFile:        path.Join(baseDir, name, DefaultPlaybookFile),
-		componentsFile: path.Join(baseDir, name, "components.yml"),
-		componentsDir:  path.Join(baseDir, name, "components"),
-		migrateFile:    path.Join(baseDir, name, "migrate.yml"),
-
-		defaultPlaybook: "run",
+		defaultPlaybook: DefaultPlaybook,
+		baseDir:         baseDir,
+		dir:             path.Join(baseDir, name),
+		varsFile:        path.Join(baseDir, name, "vars.yml"),
+		runFile:         path.Join(baseDir, name, DefaultPlaybookFile),
+		componentsFile:  path.Join(baseDir, name, "components.yml"),
+		componentsDir:   path.Join(baseDir, name, "components"),
+		migrateFile:     path.Join(baseDir, name, "migrate.yml"),
 	}
 
 	return p
@@ -78,6 +78,10 @@ func NewProduct(name string, baseDir string) *Product {
 
 func (p *Product) DefaultPlaybook() string {
 	return p.defaultPlaybook
+}
+
+func (p *Product) SailPlaybookFile() string {
+	return p.runFile
 }
 
 // Init will init product internal fields
@@ -137,6 +141,32 @@ func (p *Product) ComponentList() []string {
 	return sorted
 }
 
+// GenSail generate the default sail.yml ansible playbook file
+func (p *Product) GenSail() (ansible.Playbook, error) {
+	out := ansible.Playbook(make([]ansible.Play, 0))
+
+	gatherFactsPlay := ansible.NewPlay("gather facts", "all")
+	gatherFactsPlay.GatherFacts = true
+	gatherFactsPlay.AnyErrorsFatal = false
+	gatherFactsPlay.Become = false
+	role := ansible.Role{Role: "always"}
+	gatherFactsPlay.WithRoles(role)
+	gatherFactsPlay.WithTags("gather-facts")
+	out = append(out, *gatherFactsPlay)
+
+	for _, compName := range p.ComponentList() {
+		c := p.components[compName]
+		play, err := c.GenAnsiblePlay()
+		if err != nil {
+			msg := fmt.Sprintf("GenAnsiblePlay for component (%s) failed, err: %s", c.Name, err)
+			return nil, errors.New(msg)
+		}
+		out = append(out, *play)
+	}
+
+	return out, nil
+}
+
 func (p *Product) loadDefaultVars() error {
 	b, err := os.ReadFile(p.varsFile)
 	if err != nil {
@@ -175,9 +205,10 @@ func (p *Product) loadDefaultComponents() error {
 		if err != nil {
 			return err
 		}
-		if !entry.IsDir() {
-			componentFiles = append(componentFiles, path)
+		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
+			return nil
 		}
+		componentFiles = append(componentFiles, path)
 		return nil
 	}
 	filepath.WalkDir(p.componentsDir, visitFn)

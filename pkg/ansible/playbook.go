@@ -8,12 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Play struct {
-	Name  string   `yaml:"name,omitempty"`
-	Hosts string   `yaml:"hosts,omitempty"`
-	Tags  []string `yaml:"tags,omitempty"`
-}
-
 type Playbook []Play
 
 func NewPlaybookFromFile(file string) (*Playbook, error) {

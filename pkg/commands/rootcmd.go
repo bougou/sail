@@ -10,6 +10,7 @@ import (
 	"github.com/bougou/sail/pkg/commands/apply"
 	"github.com/bougou/sail/pkg/commands/confcreate"
 	"github.com/bougou/sail/pkg/commands/confupdate"
+	"github.com/bougou/sail/pkg/commands/gensail"
 	"github.com/bougou/sail/pkg/commands/listcomponents"
 	"github.com/bougou/sail/pkg/commands/upgrade"
 	"github.com/bougou/sail/pkg/models"
@@ -58,10 +59,11 @@ func NewSailCommand() *cobra.Command {
 
 	rootCmd.Flags().AddGoFlagSet(flag.CommandLine)
 
+	rootCmd.AddCommand(apply.NewCmdApply(sailOption))
 	rootCmd.AddCommand(confcreate.NewCmdConfCreate(sailOption))
 	rootCmd.AddCommand(confupdate.NewCmdConfUpdate(sailOption))
+	rootCmd.AddCommand(gensail.NewCmdGenSail(sailOption))
 	rootCmd.AddCommand(listcomponents.NewCmdListComponents(sailOption))
-	rootCmd.AddCommand(apply.NewCmdApply(sailOption))
 	rootCmd.AddCommand(upgrade.NewCmdUpgrade(sailOption))
 
 	return rootCmd

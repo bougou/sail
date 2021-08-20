@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bougou/sail/pkg/ansible"
 	"gopkg.in/yaml.v3"
 )
 
@@ -25,6 +26,8 @@ type Component struct {
 	Requires     []Require `yaml:"requires"`
 	Dependencies []string  `yaml:"dependencies"`
 
+	Roles []string `yaml:"roles"`
+
 	Vars map[string]interface{} `yaml:"vars"`
 	Tags map[string]interface{} `yaml:"tags"`
 }
@@ -39,6 +42,7 @@ func NewComponent(name string) *Component {
 		Computed:     make(map[string]ServiceComputed),
 		Requires:     make([]Require, 0),
 		Dependencies: make([]string, 0),
+		Roles:        make([]string, 0),
 		Vars:         make(map[string]interface{}),
 		Tags:         make(map[string]interface{}),
 	}
@@ -99,6 +103,30 @@ func (c *Component) Compute(cmdb *CMDB) error {
 		(c.Computed)[svcName] = *svcComputed
 	}
 	return nil
+}
+
+func (c *Component) GenAnsiblePlay() (*ansible.Play, error) {
+	hostsPattern := fmt.Sprintf("{{ _ansiblepattern_%s | default('%s') }}", strings.ReplaceAll(c.Name, "-", "_"), c.Name)
+	play := ansible.NewPlay(c.Name, hostsPattern)
+	play.WithTags("hosts-" + c.Name)
+
+	if len(c.Roles) == 0 {
+		role := ansible.Role{
+			Role: c.Name,
+			Tags: []string{c.Name},
+		}
+		play.Roles = append(play.Roles, role)
+	} else {
+		for _, r := range c.Roles {
+			role := ansible.Role{
+				Role: r,
+				Tags: []string{r},
+			}
+			play.Roles = append(play.Roles, role)
+		}
+	}
+
+	return play, nil
 }
 
 func newComponentFromValue(componentName string, componentValue interface{}) (*Component, error) {
