@@ -44,6 +44,12 @@ func NewRunningZone(zone *Zone, playbook string) *RunningZone {
 		"targets_dir=" + zone.sailOption.TargetsDir,
 	}
 
+	// sudoParams := []string{
+	// 	"--become",
+	// 	"--become-user=root",
+	// }
+	// sudoParams = append(sudoParams, "--ask-become-pass")
+
 	return rz
 }
 func (rz *RunningZone) Run(args []string) error {
@@ -87,4 +93,35 @@ func (rz *RunningZone) Run(args []string) error {
 	cmdWrapper.SetDebug(true)
 	return cmdWrapper.Run()
 
+}
+
+// Todo
+func (rz *RunningZone) helmInstall() {
+	helmArgs := []string{
+		"install",
+		rz.zone.ProductName,
+		"the-helm-dir",
+		"--kubeconfig",
+		"/path/to/kubeconfig",
+		"--values",
+		"/path/to/vars.yml",
+		"--debug",
+	}
+	fmt.Println(helmArgs)
+}
+
+// Todo
+func (rz *RunningZone) helmUpgrade() {
+	helmArgs := []string{
+		"upgrade",
+		rz.zone.ProductName,
+		"the-helm-dir",
+		"--kubeconfig",
+		"/path/to/kubeconfig",
+		"--values",
+		"/path/to/vars.yml",
+		"--force",
+		"--debug",
+	}
+	fmt.Println(helmArgs)
 }

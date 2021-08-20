@@ -339,3 +339,7 @@ func (zone *Zone) LoadHosts() error {
 	zone.CMDB.Inventory = i
 	return nil
 }
+
+// Todo, construct Helm chart from the helm dir of each component of the product.
+func (zone *Zone) Helm() {
+}

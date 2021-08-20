@@ -14,18 +14,45 @@ type Component struct {
 	Name    string `yaml:"-"`
 	Version string `yaml:"version"`
 
+	// Form represents the installation method of this component, valid values:
+	//  * server
+	//  * pod
+	Form string `yaml:"form"`
+
 	// Pkgs hold all files that are used to complete the deployment of the component.
 	Pkgs []Pkg `yaml:"pkgs"`
 
-	Enabled  bool `yaml:"enabled"`
+	// Enabled represents wether this component is deployed in the specific environment.
+	Enabled bool `yaml:"enabled"`
+
+	// External represents wether this component is provided by external system like cloud, and thus no need to be deployed.
 	External bool `yaml:"external"`
 
-	Services map[string]Service         `yaml:"services"`
+	// Services holds all exposed service
+	Services map[string]Service `yaml:"services"`
+
+	// Computed holds all auto computed service info
 	Computed map[string]ServiceComputed `yaml:"computed"`
 
-	Requires     []Require `yaml:"requires"`
-	Dependencies []string  `yaml:"dependencies"`
+	// Requires represents the other components on which this component depends on.
+	// If this component is activated (enabled:true or external:true), then all these required components also need to be activated.
+	Requires []Require `yaml:"requires"`
 
+	// The list value of `deps` represents the other services which depend on this service.
+	// If the number of hosts of this service changed, it required that
+	// those services who depend on it also need to be reconfigured or restarted.
+	// For `service-scaleup` and `service-scaledown`, these dependencies will be used
+	Dependencies []string `yaml:"dependencies"`
+
+	// Children represents some children-level components of this component.
+	// The children components have the following characteristics:
+	// * They can declared to be activated or not enabled: true or false.
+	// * They can be upgraded like normal components.
+	// * They DO NOT have their own hosts group in ansible inventory, they share the hosts group of its parent component.
+	Children []string `yaml:"children"`
+
+	// Applied roles for this component.
+	// The empty list will apply at least one role with the name of the component.
 	Roles []string `yaml:"roles"`
 
 	Vars map[string]interface{} `yaml:"vars"`

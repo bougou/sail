@@ -114,6 +114,9 @@ func (p *Product) SetComponentEnabled(name string, flag bool) error {
 	if flag {
 		p.Components[name].External = false
 	}
+
+	// Todo,
+	// if this component is (enabled:true or external:true), we should automatically set all its depenent components to be (enabled:true or external:true)
 	return nil
 }
 
@@ -128,6 +131,9 @@ func (p *Product) SetComponentExternalEnabled(name string, flag bool) error {
 		p.Components[name].Enabled = false
 	}
 	return nil
+
+	// Todo,
+	// if this component is (enabled:true or external:true), we should automatically set all its depenent components to be (enabled:true or external:true)
 }
 
 func (p *Product) ComponentList() []string {
@@ -325,4 +331,12 @@ func (p *Product) Check() error {
 
 	msg := fmt.Sprintf("Check product (%s) faield, err: %s", p.Name, strings.Join(errmsgs, "; "))
 	return errors.New(msg)
+
+	// Todo call checkPortsConflict
+}
+
+// checkPortsConflict
+// if multiple components are installed on same hosts, the listened ports of those components may be conflicted.
+func (p *Product) checkPortsConflict(cmdb *CMDB) error {
+	return nil
 }

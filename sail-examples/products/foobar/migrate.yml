@@ -1,7 +1,41 @@
 - name: create dir 1
   make_dir:
-    path: /tmp/dir1
+    path: "{{ _sail_zone_dir }}/resources"
 
 - name: create dir 2
   make_dir:
     path: /tmp/dir1
+
+- name: rename dir
+  rename_dir:
+    name: "dirname1"
+    value: "dirname2" # "dirname3/dirname4"
+
+- name: delete file
+  delete_file:
+    name: "filename"
+
+- name: delete unused var
+  delete_var:
+    name: "a.b.c.d"
+
+- name: fill var
+  fill_new_var:
+    name: "a.b.c.e"
+    value: ""
+
+- name: set var
+  set_var:
+    name: "a.b.c.f"
+    value: ""
+  when: a.b.c.e == "" and x.y.z == ""
+
+- name: rename var
+  rename_var:
+    name: "a.b.c.d"
+    value: "a.b.c.k"
+
+- name: rename inventory group name
+  rename_inventory_group:
+    name: "component-A"
+    value: "component-B"
