@@ -1,18 +1,37 @@
 # 产品
 
-假设我们负责一个产品的运维，产品名称为 `foobar`。首先以产品的名字创建一个文件夹，该文件夹里面包含该产品的运维代码。
+products 目录下的每一个 `<product-name>` 目录就是该产品的「部署代码」。里面封装了该产品的所有部署及运维逻辑。
 
-这个文件夹的结构如下：
+理想情况下，products 目录的内容应该维护在一个 Git 仓库中（或者按产品维护在多个仓库里）。
+当产品的运维逻辑需要更新时，你都应该去修改仓库中对应的产品运维代码。
+
+## Product 的目录结构
+
+`products/<product-name>` 目录下的结构：
 
 ```bash
-components/     # 该产品的组件声明
-component.yml   # 该产品的组件声明
+## sail 规范
+components.yml      # 组件声明
+components/         # 组件声明
+vars.yml            # 非组件变量，通常定义一些所有组件都通用的变量，如数据目录 data_dir，时区 timezone
+# 所有的「组件变量」以及「非组件变量」最终会合并在一起，称为「环境配置」
+# 把产品部署到不同环境中时，每个环境都拥有自己独立的一份「环境配置」
+# 每个环境的「环境配置」位于环境自己的目录下面（targets/<target>/<zone>/)，可以按照环境实际情况修改
 
-vars.yml        # 该产品在不同环境中部署时，可能需要改变的变量
+## Ansible 相关
+sail.yml            # 必须存在的一个 Ansible Playbook 文件
+<playbook>.yml      # 其它的 Playbook 文件
+roles/              # Ansible Roles，实现各个组件的实际的、具体的安装逻辑
 
-sail.yml        # 一个Ansible Playbook 文件，使用命令自动生成
+## Helm 相关
+templates/          # Helm templates
+Chart.yml           # Helm Chart definition
+values.yml          # Helm values 变量定义
 
-roles/          # Ansible Roles，实现各个组件的实际的、具体的安装逻辑
+## 通用
+resources/          # 其它默认资源，如默认的证书文件、试用 License 文件、默认的 icon 图标等
 
-README.md
+## 其它文件
+README.md           # 产品的介绍文档
+
 ```

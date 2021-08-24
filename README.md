@@ -35,6 +35,28 @@ A `zone` must be created under a specific `target` and there can be multiple `zo
 
 It's real software artifacts. It's normally compressed in some format, like `.rpm`, `.tar.gz`, `.gzip` ....
 
+To use `sail` to do operation, you need to understand how to declare `product` and how to define the `component(s)` that make up of the `product`.
+
+## Use sail
+
+The `sail` command uses three directories to do its job.
+
+```yaml
+# cat ~/.sailrc.yml
+products-dir: /path/to/products    # Store the operation code of product(s).
+targets-dir: /path/to/targets      # Store the environment informations.
+packages-dir: /path/to/packages    # Store package files.
+```
+
+> Note, these three directories can be located at different places (be not under a same parent dir).
+
+> The `products-dir` contains all operation code of products(s). You should put your specific `<productName>` dir under `products-dir` even if you only have one product. Normally, the content of products dir should be managed by git.
+
+> The `targets-dir` keeps all configurations of environments.
+
+> The `packages-dir` holds all package files. You can create recursive directories under it.
+
+
 ## Documents
 
 - [QuickStart](./docs/quick-start.md)
