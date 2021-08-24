@@ -27,9 +27,7 @@ somegroupname:
       ansible_port: 2222
 ```
 
-## 主机的 SSH 连接地址并不是 Inventory 的 hosts 信息
-
-使用 `ansible_host` 变量指定 SSH 的连接地址。
+如果主机的 SSH 连接地址并不是 Inventory 的 `hosts` 字段下的地址，可以使用 `ansible_host` 变量指定 SSH 的连接地址，ansible 的 `inventory_hostname` 变量依然是 `hosts` 字段下的地址。
 
 ```yaml
 somegroupname:
