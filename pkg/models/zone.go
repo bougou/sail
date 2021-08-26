@@ -198,8 +198,6 @@ func (zone *Zone) Dump() error {
 }
 
 func (zone *Zone) RenderVars() {
-	fmt.Println("zone render vars")
-
 	m := make(map[string]interface{})
 
 	for k, v := range zone.Product.Vars {

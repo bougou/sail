@@ -116,17 +116,20 @@ foobar-cache:
 `components.yml` 或和 `components` 目录下的任何 `.yml` 文件（文件名没有实际的意义）都可以用来定义产品的组件。
 组件的名称是由 `.yml` 文件的「顶层字段」决定的。
 
-## Roles 目录
+## 组件的实现
 
-组件的实际运维代码是由组件的 Role 实现的。
+`products/<productName>/roles` 目录下存放每一个组件的实际运维代码。
 
 通常情况下，你会为每一个组件在 `products/<productName>/roles` 目录下开发一个对应的组件 Role。
 
-`sail` 制定的组件 Role 的目录结构以 Ansible 的 Role 目录作为基准。
+> 但是请注意，components 与 roles 下面的目录并不是一对一的关系，并且 role 的名字也不一定需要和 component 的名字相同。
+
+`sail` 制定的组件 Role 的目录结构以 Ansible 的 Role 目录作为基准，并扩展了其它功能。
 
 ```bash
 <roleName>/
   # 下面 8 个子目录是 Ansible 的 Role 标准目录结构，请使用这几个目录去开发标准的 Ansible Role
+  # 通常情况下，如果组件需要使用常规形式（非容器化）部署的话，你肯定需要编写 ansible 格式的 role
   defaults/
   tasks/
   files/
@@ -158,6 +161,8 @@ foobar-cache:
 
 ## 变量
 
+Ansible 和 Helm 的核心操作是根据变量去渲染出配置文件。`sail` 做的最多的一项工作就是针对「环境」的变量的处理。
+
 `sail` 会把下面一些变量传给 Ansible 和 Helm，Ansible 和 Helm 可以使用这些变量去执行渲染动作。
 
 1. 环境特有的变量信息
@@ -166,12 +171,12 @@ foobar-cache:
 
 2. 几个 `sail` 相关变量
 
-    - `packages_dir`
-    - `targets_dir`
-    - `products_dir`
-    - `target_dir`
-    - `zone_dir`
-    - `target_name`
-    - `zone_name`
+    - `sail_packages_dir`
+    - `sail_targets_dir`
+    - `sail_products_dir`
+    - `sail_target_dir`
+    - `sail_zone_dir`
+    - `sail_target_name`
+    - `sail_zone_name`
 
-3. Ansible 或 Helm 本身能够识别的其它变量
+除了 `sail` 提供的变量，Ansible 或 Helm 本身也能够识别很多其它变量。

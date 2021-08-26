@@ -22,7 +22,7 @@ When you are responsible for managing and operating a software product, you shou
 
 ### Target
 
-Target represents a the environment where the product softwares are installed and run.
+Target represents the environment where the product softwares are installed and run.
 
 In `sail`, we used two hierarchies to arrange environments.
 
@@ -35,11 +35,13 @@ A `zone` must be created under a specific `target` and there can be multiple `zo
 
 ### Package
 
-It's real software artifacts. It's normally compressed in some format, like `.rpm`, `.tar.gz`, `.gzip` ....
+Package(s) are real software artifacts. They are normally compressed in some format, like `.rpm`, `.tar.gz`, `.gzip` ....
 
 To use `sail` to do operation, you need to understand how to declare `product` and how to define the `component(s)` that make up of the `product`.
 
 ## Use sail
+
+Generally, you run `sail` on a centralized machine (deploy machine).
 
 The `sail` command uses three directories to do its job.
 
@@ -50,13 +52,13 @@ targets-dir: /path/to/targets      # Store the environment informations.
 packages-dir: /path/to/packages    # Store package files.
 ```
 
-> Note, these three directories can be located at different places (be not under a same parent dir).
+> Note, these three directories can be located at different places (that is not under a same parent dir).
 
 > The `products-dir` contains all operation code of products(s). You should put your specific `<productName>` dir under `products-dir` even if you only have one product. Normally, the content of products dir should be managed by git.
 
-> The `targets-dir` keeps all configurations of environments.
+> The `targets-dir` keeps all configurations of environments. This dir should exists on the deploy machine.
 
-> The `packages-dir` holds all package files. You can create recursive directories under it.
+> The `packages-dir` holds all package files. You can create recursive directories under it to store any files.
 
 
 ## Documents
