@@ -42,6 +42,14 @@ func NewRunningZone(zone *Zone, playbook string) *RunningZone {
 		"packages_dir=" + zone.sailOption.PackagesDir,
 		"-e",
 		"targets_dir=" + zone.sailOption.TargetsDir,
+		"-e",
+		"target_dir=" + zone.TargetDir,
+		"-e",
+		"zone_dir=" + zone.ZoneDir,
+		"-e",
+		"target_name=" + zone.TargetName,
+		"-e",
+		"zone_name=" + zone.ZoneName,
 	}
 
 	// sudoParams := []string{

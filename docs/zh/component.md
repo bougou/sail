@@ -164,10 +164,14 @@ foobar-cache:
 
     `targets/<target>/<zone>/vars.yml` 文件中的变量，包含所有组件变量以及非组件变量。
 
-2. 三个 `sail` 全局变量
+2. 几个 `sail` 相关变量
 
     - `packages_dir`
     - `targets_dir`
     - `products_dir`
+    - `target_dir`
+    - `zone_dir`
+    - `target_name`
+    - `zone_name`
 
 3. Ansible 或 Helm 本身能够识别的其它变量

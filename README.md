@@ -4,6 +4,8 @@
 
 `sail` is an operation framework based on Ansible. `sail` follows the principles of ***Infrastructure as Code (IaC)***,  ***Operation as Code (OaC)***，and ***Everything as Code***. So it is a tool for ***DevOps***.
 
+> `sail` is especially suitable for the privatization delivery of software products.
+
 Although `sail` strongly utilizes `Ansible`, `sail` does not write the ansible tasks/roles for you. It's still your responsibility to develop ansible roles and tasks.
 
 ## Product and Target and Package
@@ -16,7 +18,7 @@ Product is a specific software product. It is composed of components.
 
 A `Product` can be simple and small with just several components, or can be big and complex with hunderds of components.
 
-When you have to manage and operate a product, you should prepare the product operation code. The operation code of a product is not the functional code that written by product developers. It is code that direct the operators to how to install and manage the product.
+When you are responsible for managing and operating a software product, you should prepare the ***product operation code***. The operation code of a product is not the functional code that written by product developers. It is code that direct the operators to install and manage the product.
 
 ### Target
 

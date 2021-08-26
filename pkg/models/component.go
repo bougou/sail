@@ -145,6 +145,9 @@ func (c *Component) GenAnsiblePlay() (*ansible.Play, error) {
 		play.Roles = append(play.Roles, role)
 	} else {
 		for _, r := range c.Roles {
+			if r == "." {
+				r = c.Name
+			}
 			role := ansible.Role{
 				Role: r,
 				Tags: []string{r},
