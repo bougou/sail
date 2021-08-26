@@ -20,6 +20,7 @@ func NewCmdListComponents(sailOption *models.SailOption) *cobra.Command {
 		Long:  "list-components",
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CheckErr(o.Complete(cmd, args))
+			common.CheckErr(o.Validate())
 			common.CheckErr(o.Run())
 		},
 	}
@@ -59,6 +60,10 @@ func (o *ListComponentsOptions) Complete(cmd *cobra.Command, args []string) erro
 		return errors.New(msg)
 	}
 
+	return nil
+}
+
+func (o *ListComponentsOptions) Validate() error {
 	return nil
 }
 

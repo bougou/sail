@@ -19,6 +19,8 @@ func NewCmdUpgrade(sailOption *models.SailOption) *cobra.Command {
 		Short: "upgrade",
 		Long:  "upgrade",
 		Run: func(cmd *cobra.Command, args []string) {
+			common.CheckErr(o.Complete(cmd, args))
+			common.CheckErr(o.Validate())
 			common.CheckErr(o.Run(args))
 		},
 	}
@@ -49,17 +51,29 @@ func NewUpgradeOptions(sailOption *models.SailOption) *UpgradeOptions {
 	}
 }
 
-func (o *UpgradeOptions) Complete() error {
+func (o *UpgradeOptions) Complete(cmd *cobra.Command, args []string) error {
+	if o.TargetName == "" {
+		o.TargetName = o.sailOption.DefaultTarget
+	}
+	if o.ZoneName == "" {
+		o.ZoneName = o.sailOption.DefaultZone
+	}
 
 	return nil
 }
 
 func (o *UpgradeOptions) Validate() error {
-
+	if o.TargetName == "" {
+		return errors.New("Must specify target name")
+	}
+	if o.ZoneName == "" {
+		return errors.New("Must specify zone name")
+	}
 	return nil
 }
 
 func (o *UpgradeOptions) Run(args []string) error {
+	fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if err := zone.Load(true); err != nil {
 		return err

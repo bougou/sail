@@ -19,15 +19,15 @@ func NewCmdConfUpdate(sailOption *models.SailOption) *cobra.Command {
 		Short: "conf-update",
 		Long:  "conf-update",
 		Run: func(cmd *cobra.Command, args []string) {
+			common.CheckErr(o.Complete(cmd, args))
+			common.CheckErr(o.Validate())
 			common.CheckErr(o.Run())
 		},
 	}
 
 	cmd.Flags().StringVarP(&o.TargetName, "target", "t", o.TargetName, "target name")
-	cmd.MarkFlagRequired("target")
 
 	cmd.Flags().StringVarP(&o.ZoneName, "zone", "z", o.ZoneName, "zone name")
-	cmd.MarkFlagRequired("zone")
 
 	cmd.Flags().StringArrayVarP(&o.Hosts, "hosts", "", nil, "the hosts")
 	cmd.Flags().StringArrayVarP(&o.Components, "components", "c", nil, "enable components")
@@ -58,17 +58,30 @@ func NewConfUpdateOptions(sailOption *models.SailOption) *ConfUpdateOptions {
 	}
 }
 
-func (o *ConfUpdateOptions) Complete() error {
+func (o *ConfUpdateOptions) Complete(cmd *cobra.Command, args []string) error {
+	if o.TargetName == "" {
+		o.TargetName = o.sailOption.DefaultTarget
+	}
+	if o.ZoneName == "" {
+		o.ZoneName = o.sailOption.DefaultZone
+	}
 
 	return nil
 }
 
 func (o *ConfUpdateOptions) Validate() error {
+	if o.TargetName == "" {
+		return errors.New("Must specify target name")
+	}
+	if o.ZoneName == "" {
+		return errors.New("Must specify zone name")
+	}
 
 	return nil
 }
 
 func (o *ConfUpdateOptions) Run() error {
+	fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if err := zone.Load(true); err != nil {
 		msg := fmt.Sprintf("zone.Load failed, err: %s", err)

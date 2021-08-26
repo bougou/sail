@@ -57,6 +57,9 @@ func NewSailCommand() *cobra.Command {
 	rootCmd.PersistentFlags().StringVarP(&sailOption.ProductsDir, "products-dir", "", defaultProductsDir, "the products dir")
 	rootCmd.PersistentFlags().StringVarP(&sailOption.PackagesDir, "packages-dir", "", defaultPackagesDir, "the packages dir")
 
+	rootCmd.PersistentFlags().StringVarP(&sailOption.DefaultTarget, "default-target", "", "", "the default target")
+	rootCmd.PersistentFlags().StringVarP(&sailOption.DefaultZone, "default-zone", "", "", "the default zone")
+
 	rootCmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	rootCmd.AddCommand(apply.NewCmdApply(sailOption))

@@ -20,6 +20,7 @@ func NewCmdGenSail(sailOption *models.SailOption) *cobra.Command {
 		Long:  "gen-sail",
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CheckErr(o.Complete(cmd, args))
+			common.CheckErr(o.Validate())
 			common.CheckErr(o.Run())
 		},
 	}
@@ -59,6 +60,10 @@ func (o *GenSailOptions) Complete(cmd *cobra.Command, args []string) error {
 		return errors.New(msg)
 	}
 
+	return nil
+}
+
+func (o *GenSailOptions) Validate() error {
 	return nil
 }
 

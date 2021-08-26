@@ -90,7 +90,8 @@ func (rz *RunningZone) Run(args []string) error {
 	cmd.Stdin = os.Stdin
 
 	cmdWrapper := newexec.NewCmdEnvWrapper(cmd, env...)
-	cmdWrapper.SetDebug(true)
+	fmt.Println("⛵ " + cmdWrapper.String())
+	// cmdWrapper.SetDebug(true)
 	return cmdWrapper.Run()
 
 }

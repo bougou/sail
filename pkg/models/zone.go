@@ -22,6 +22,9 @@ type SailOption struct {
 	ProductsDir string
 	PackagesDir string
 	TargetsDir  string
+
+	DefaultTarget string
+	DefaultZone   string
 }
 
 type Zone struct {

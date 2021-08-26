@@ -21,15 +21,14 @@ func NewCmdApply(sailOption *models.SailOption) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			// cmd here refers to parent command
 			common.CheckErr(o.Complete(cmd, args))
+			common.CheckErr(o.Validate())
 			common.CheckErr(o.Run(args))
 		},
 	}
 
 	cmd.Flags().StringVarP(&o.TargetName, "target", "t", o.TargetName, "target name")
-	cmd.MarkFlagRequired("target")
 
 	cmd.Flags().StringVarP(&o.ZoneName, "zone", "z", o.ZoneName, "zone name")
-	cmd.MarkFlagRequired("zone")
 
 	cmd.Flags().StringVarP(&o.Playbook, "playbook", "p", "run", "optional playbook name")
 
@@ -54,6 +53,13 @@ func NewApplyOptions(sailOption *models.SailOption) *ApplyOptions {
 }
 
 func (o *ApplyOptions) Complete(cmd *cobra.Command, args []string) error {
+	if o.TargetName == "" {
+		o.TargetName = o.sailOption.DefaultTarget
+	}
+	if o.ZoneName == "" {
+		o.ZoneName = o.sailOption.DefaultZone
+	}
+
 	return nil
 }
 
@@ -62,6 +68,7 @@ func (o *ApplyOptions) Validate() error {
 }
 
 func (o *ApplyOptions) Run(args []string) error {
+	fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if err := zone.Load(true); err != nil {
 		return err

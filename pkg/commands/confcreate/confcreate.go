@@ -84,6 +84,7 @@ func (o *ConfCreateOptions) Validate() error {
 }
 
 func (o *ConfCreateOptions) Run() error {
+	fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if _, err := os.Stat(zone.ZoneDir); !os.IsNotExist(err) {
 		msg := fmt.Sprintf("target/zone (%s/%s) already exists, found zone dir: %s, remove the dir if you want to recreate the zone", o.TargetName, o.ZoneName, zone.ZoneDir)
