@@ -2,11 +2,14 @@
 
 [中文文档](./docs/readme_zh.md)
 
-`sail` is an operation framework based on Ansible. `sail` follows the principles of ***Infrastructure as Code (IaC)***,  ***Operation as Code (OaC)***，and ***Everything as Code***. So it is a tool for ***DevOps***.
+`sail` is an operation framework based on Ansible/Helm. `sail` follows the principles of ***Infrastructure as Code (IaC)***,  ***Operation as Code (OaC)***，and ***Everything as Code***. So it is a tool for ***DevOps***.
 
 > `sail` is especially suitable for the privatization delivery of software products.
 
-Although `sail` strongly utilizes `Ansible`, `sail` does not write the ansible tasks/roles for you. It's still your responsibility to develop ansible roles and tasks.
+Although `sail` strongly utilizes `Ansible` and `Helm`, `sail` does not write the ansible tasks or helm chart templates for you. It's still your responsibility to develop ansible tasks and helm templates files.
+
+> - `Ansible` is for deploying to normal servers.
+> - `Helm` is for deploying to Kubernetes.
 
 ## Product and Target and Package
 
@@ -31,13 +34,11 @@ The two hierarchies are:
 - `target`
 - `zone`
 
-A `zone` must be created under a specific `target` and there can be multiple `zone`(s) under a `target`.
+A `zone` must be created under a specific `target` and there can be multiple `zone`(s) under a `target`. The `target(s)` are totally isolated from each other in `sail`.
 
 ### Package
 
 Package(s) are real software artifacts. They are normally compressed in some format, like `.rpm`, `.tar.gz`, `.gzip` ....
-
-To use `sail` to do operation, you need to understand how to declare `product` and how to define the `component(s)` that make up of the `product`.
 
 ## Use sail
 
@@ -60,6 +61,28 @@ packages-dir: /path/to/packages    # Store package files.
 
 > The `packages-dir` holds all package files. You can create recursive directories under it to store any files.
 
+To use `sail` to do operation, you need to understand how to declare `product` and how to define the `component(s)` that make up of the `product`.
+
+## Why use sail
+
+Using `sail`, you can change ***the operations of any products*** into the following commands:
+
+```bash
+# Create a target environment (target/zone)
+$ sail conf-create -t <targetname> -z <zonename> \
+  -p <productname> \
+  --hosts <hosts-for-components> \
+  --hosts <hosts-for-components> \
+  ...
+
+# Deploy
+$ sail apply -t <targetname> -z <zonename>
+
+# Upgrade specific components
+$ sail upgrade -t <targetname> -z <zonename> \
+  -c <componentName1>/<componentVersion1> \
+  -c <componentName2>/<componentVersion2>
+```
 
 ## Documents
 
