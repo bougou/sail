@@ -16,8 +16,8 @@ func NewCmdApply(sailOption *models.SailOption) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "apply",
-		Short: "apply",
-		Long:  "apply",
+		Short: "apply start deployment",
+		Long:  "apply start deployment",
 		Run: func(cmd *cobra.Command, args []string) {
 			// cmd here refers to parent command
 			common.CheckErr(o.Complete(cmd, args))

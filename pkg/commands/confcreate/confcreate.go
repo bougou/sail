@@ -23,8 +23,8 @@ func NewCmdConfCreate(sailOption *models.SailOption) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "conf-create",
-		Short: "conf-create",
-		Long:  "conf-create",
+		Short: "create a new envinronment (target/zone)",
+		Long:  "create a new envinronment (target/zone)",
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CheckErr(o.Complete(cmd, args))
 			common.CheckErr(o.Validate())

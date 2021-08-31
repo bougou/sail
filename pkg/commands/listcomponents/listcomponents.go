@@ -16,8 +16,8 @@ func NewCmdListComponents(sailOption *models.SailOption) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list-components",
-		Short: "list-components",
-		Long:  "list-components",
+		Short: "list the components of a product",
+		Long:  "list the components of a product",
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CheckErr(o.Complete(cmd, args))
 			common.CheckErr(o.Validate())

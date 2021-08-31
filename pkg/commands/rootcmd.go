@@ -13,6 +13,7 @@ import (
 	"github.com/bougou/sail/pkg/commands/gensail"
 	"github.com/bougou/sail/pkg/commands/listcomponents"
 	"github.com/bougou/sail/pkg/commands/upgrade"
+	"github.com/bougou/sail/pkg/commands/x"
 	"github.com/bougou/sail/pkg/models"
 	"github.com/mitchellh/go-homedir"
 
@@ -68,6 +69,7 @@ func NewSailCommand() *cobra.Command {
 	rootCmd.AddCommand(gensail.NewCmdGenSail(sailOption))
 	rootCmd.AddCommand(listcomponents.NewCmdListComponents(sailOption))
 	rootCmd.AddCommand(upgrade.NewCmdUpgrade(sailOption))
+	rootCmd.AddCommand(x.NewCmdX(sailOption))
 
 	return rootCmd
 }

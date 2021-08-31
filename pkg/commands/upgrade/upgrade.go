@@ -16,8 +16,8 @@ func NewCmdUpgrade(sailOption *models.SailOption) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "upgrade",
-		Short: "upgrade",
-		Long:  "upgrade",
+		Short: "upgrade the components of product to specified version",
+		Long:  "upgrade the components of product to specified version",
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CheckErr(o.Complete(cmd, args))
 			common.CheckErr(o.Validate())

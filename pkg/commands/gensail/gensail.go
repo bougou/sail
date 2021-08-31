@@ -16,8 +16,8 @@ func NewCmdGenSail(sailOption *models.SailOption) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "gen-sail",
-		Short: "gen-sail",
-		Long:  "gen-sail",
+		Short: "auto generate the sail.yml playbook file",
+		Long:  "auto generate the sail.yml playbook file",
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CheckErr(o.Complete(cmd, args))
 			common.CheckErr(o.Validate())

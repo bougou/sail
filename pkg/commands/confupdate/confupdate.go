@@ -16,8 +16,8 @@ func NewCmdConfUpdate(sailOption *models.SailOption) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "conf-update",
-		Short: "conf-update",
-		Long:  "conf-update",
+		Short: "update the vars for an environment",
+		Long:  "update the vars for an environment",
 		Run: func(cmd *cobra.Command, args []string) {
 			common.CheckErr(o.Complete(cmd, args))
 			common.CheckErr(o.Validate())
