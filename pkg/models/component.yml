@@ -55,3 +55,12 @@ the-component-name:
   tags:
     tag1: "hello"
     tag2: "world"
+
+  # specify the required settings for machine and os for this component.
+  # can be used to check before deploy
+  machine:
+    bios:
+      - numa
+      - hyperthreading
+    os:
+      - hugepage
