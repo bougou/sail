@@ -99,7 +99,7 @@ func (o *ConfCreateOptions) Run() error {
 
 	m, err := options.ParseHostsOption(o.Hosts)
 	if err != nil {
-		msg := fmt.Sprintf("ParseHostsOption failed, err: %s", err)
+		msg := fmt.Sprintf("parse hosts option failed, err: %s", err)
 		return errors.New(msg)
 	}
 
@@ -108,7 +108,7 @@ func (o *ConfCreateOptions) Run() error {
 	}
 
 	if err := zone.Dump(); err != nil {
-		msg := fmt.Sprintf("zone.Dump failed, err: %s", err)
+		msg := fmt.Sprintf("dump zone failed, err: %s", err)
 		return errors.New(msg)
 	}
 

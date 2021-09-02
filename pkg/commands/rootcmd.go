@@ -40,7 +40,7 @@ func NewSailCommand() *cobra.Command {
 			return initConfig(cmd)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("start sail")
+			fmt.Println("you have to specify a subcommand for sail")
 		},
 	}
 
@@ -90,14 +90,14 @@ func initConfig(cmd *cobra.Command) error {
 	err := viper.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// fmt.Println("Not found any config file")
+			// fmt.Println("not found any config file")
 		} else {
 			// ConfigFile found, but viper read failed.
-			fmt.Println("Using config file:", viper.ConfigFileUsed())
+			fmt.Println("using config file:", viper.ConfigFileUsed())
 			fmt.Println(err)
 		}
 	} else {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		fmt.Println("using config file:", viper.ConfigFileUsed())
 	}
 
 	// When we bind flags to environment variables expect that the

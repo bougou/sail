@@ -86,7 +86,7 @@ func (rz *RunningZone) Run(args []string) error {
 	logFileName := "/tmp/log.txt"
 	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
-		return errors.New(fmt.Sprintf("can not create log file: %s, exit", logFileName))
+		return fmt.Errorf("can not create log file: %s, exit", logFileName)
 	}
 
 	// thus, the cmd's output goes to terminal AND logfile
@@ -109,11 +109,9 @@ func (rz *RunningZone) helmInstall() {
 	helmArgs := []string{
 		"install",
 		rz.zone.ProductName,
-		"the-helm-dir",
+		rz.zone.HelmChartDir(),
 		"--kubeconfig",
 		"/path/to/kubeconfig",
-		"--values",
-		"/path/to/vars.yml",
 		"--debug",
 	}
 	fmt.Println(helmArgs)
@@ -124,11 +122,9 @@ func (rz *RunningZone) helmUpgrade() {
 	helmArgs := []string{
 		"upgrade",
 		rz.zone.ProductName,
-		"the-helm-dir",
+		rz.zone.HelmChartDir(),
 		"--kubeconfig",
 		"/path/to/kubeconfig",
-		"--values",
-		"/path/to/vars.yml",
 		"--force",
 		"--debug",
 	}

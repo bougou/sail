@@ -14,6 +14,9 @@ type Component struct {
 	Name    string `yaml:"-"`
 	Version string `yaml:"version"`
 
+	// If RoleName is empty, it will be set to same with Name.
+	RoleName string `yaml:"role_name"`
+
 	// Form represents the installation method of this component, valid values:
 	//  * server
 	//  * pod
@@ -52,7 +55,7 @@ type Component struct {
 	Children []string `yaml:"children"`
 
 	// Applied roles for this component.
-	// The empty list will apply at least one role with the name of the component.
+	// The empty list will apply at least one role with the componen's RoleName.
 	Roles []string `yaml:"roles"`
 
 	Vars map[string]interface{} `yaml:"vars"`
@@ -62,7 +65,8 @@ type Component struct {
 // NewComponent returns a Component.
 func NewComponent(name string) *Component {
 	return &Component{
-		Name: name,
+		Name:     name,
+		RoleName: name,
 
 		Pkgs:         make([]Pkg, 0),
 		Services:     make(map[string]Service),
@@ -114,7 +118,7 @@ func (c *Component) Check() error {
 		errmsgs = append(errmsgs, err.Error())
 	}
 
-	msg := fmt.Sprintf("Check component (%s) external (%v) failed, err: %s", c.Name, c.External, strings.Join(errmsgs, "; "))
+	msg := fmt.Sprintf("check component (%s) external (%v) failed, err: %s", c.Name, c.External, strings.Join(errmsgs, "; "))
 	return errors.New(msg)
 }
 
@@ -123,7 +127,7 @@ func (c *Component) Compute(cmdb *CMDB) error {
 	for svcName, svc := range c.Services {
 		svcComputed, err := svc.Compute(c.External, cmdb)
 		if err != nil {
-			msg := fmt.Sprintf("Compute service (%s) failed, err: %s", svcName, err)
+			msg := fmt.Sprintf("compute service (%s) failed, err: %s", svcName, err)
 			return errors.New(msg)
 		}
 
@@ -132,28 +136,31 @@ func (c *Component) Compute(cmdb *CMDB) error {
 	return nil
 }
 
+func (c *Component) GetRoles() []string {
+	roles := []string{}
+	if len(c.Roles) == 0 {
+		roles = append(roles, c.RoleName)
+	}
+	for _, role := range c.Roles {
+		if role == "." {
+			role = c.RoleName
+		}
+		roles = append(roles, role)
+	}
+	return roles
+}
+
 func (c *Component) GenAnsiblePlay() (*ansible.Play, error) {
 	hostsPattern := fmt.Sprintf("{{ _ansiblepattern_%s | default('%s') }}", strings.ReplaceAll(c.Name, "-", "_"), c.Name)
 	play := ansible.NewPlay(c.Name, hostsPattern)
 	play.WithTags("hosts-" + c.Name)
 
-	if len(c.Roles) == 0 {
+	for _, r := range c.GetRoles() {
 		role := ansible.Role{
-			Role: c.Name,
-			Tags: []string{c.Name},
+			Role: r,
+			Tags: []string{r},
 		}
 		play.Roles = append(play.Roles, role)
-	} else {
-		for _, r := range c.Roles {
-			if r == "." {
-				r = c.Name
-			}
-			role := ansible.Role{
-				Role: r,
-				Tags: []string{r},
-			}
-			play.Roles = append(play.Roles, role)
-		}
 	}
 
 	return play, nil
@@ -173,7 +180,7 @@ func newComponentFromValue(componentName string, componentValue interface{}) (*C
 	}
 
 	if c.Enabled && c.External {
-		msg := fmt.Sprintf("Warn: Enabled and External of component can not be both true, automatically set Enabled to false for component (%s)", componentName)
+		msg := fmt.Sprintf("warn: Enabled and External of component can not be both true, automatically set Enabled to false for component (%s)", componentName)
 		fmt.Println(msg)
 		c.Enabled = false
 	}

@@ -3,8 +3,11 @@ package models
 import (
 	"errors"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"log"
@@ -36,6 +39,9 @@ type Zone struct {
 	VarsFile     string
 	HostsFile    string
 	ComputedFile string
+	ResourcesDir string
+
+	HelmDir string
 
 	Product  *Product
 	CMDB     *CMDB
@@ -62,6 +68,10 @@ func NewZone(sailOption *SailOption, targetName string, zoneName string) *Zone {
 		VarsFile:     path.Join(sailOption.TargetsDir, targetName, zoneName, "vars.yml"),
 		ComputedFile: path.Join(sailOption.TargetsDir, targetName, zoneName, "_computed.yml"),
 
+		ResourcesDir: path.Join(sailOption.TargetsDir, targetName, zoneName, "resources"),
+
+		HelmDir: path.Join(sailOption.TargetsDir, targetName, zoneName, ".helm"),
+
 		CMDB:     NewCMDB(),
 		Computed: make(map[string]interface{}),
 
@@ -73,22 +83,16 @@ func NewZone(sailOption *SailOption, targetName string, zoneName string) *Zone {
 	return zone
 }
 
-// Load will init zone by product. If the Product field of is empty,
-// it will try to determine the product from vars file of zone.
-// If exists is true, means the zone alredy exist, so will read and load vars from the zone vars file
-// If exists is false, means the zone is newly created.
+// Load initialize the zone with specified product.
+// If exists is true, means the zone alredy exist, it will try to determine the product name from zone vars file.
+// If exists is false, means the zone is newly created, the zone.ProductName should already be filled.
 func (zone *Zone) Load(exists bool) error {
 	if exists {
 		productName, err := zone.determineProduct()
 		if err != nil {
-			msg := fmt.Sprintf("determineProduct failed, err: %s", err)
+			msg := fmt.Sprintf("determine product failed, err: %s", err)
 			return errors.New(msg)
 		}
-
-		if productName == "" {
-			return errors.New("empty product name")
-		}
-
 		zone.ProductName = productName
 	}
 
@@ -98,18 +102,18 @@ func (zone *Zone) Load(exists bool) error {
 
 	product := NewProduct(zone.ProductName, zone.sailOption.ProductsDir)
 	if err := product.Init(); err != nil {
-		msg := fmt.Sprintf("product Init failed, err: %s", err)
+		msg := fmt.Sprintf("init product failed, err: %s", err)
 		return errors.New(msg)
 	}
 
 	if exists {
 		if err := zone.LoadHosts(); err != nil {
-			msg := fmt.Sprintf("LoadHosts failed, err: %s", err)
+			msg := fmt.Sprintf("load hosts failed, err: %s", err)
 			return errors.New(msg)
 		}
 
 		if err := product.LoadZone(zone.VarsFile); err != nil {
-			msg := fmt.Sprintf("proudct LoadZone vars failed, err: %s", err)
+			msg := fmt.Sprintf("load zone vars failed, err: %s", err)
 			return errors.New(msg)
 		}
 	}
@@ -123,17 +127,149 @@ func (zone *Zone) Load(exists bool) error {
 	zone.Product = product
 	zone.Product.Vars[ProductMetavar] = zone.ProductName
 
+	if err := zone.PrepareHelm(); err != nil {
+		msg := fmt.Sprintf("prepare zone helm failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	return nil
+}
+
+func (zone *Zone) HelmChartDir() string {
+	return path.Join(zone.HelmDir, zone.ProductName)
+}
+
+func (zone *Zone) PrepareHelm() error {
+	if err := zone.prepareHelmDir(); err != nil {
+		return err
+	}
+
+	for _, componentName := range zone.Product.ComponentList() {
+		component := zone.Product.components[componentName]
+		for _, role := range component.GetRoles() {
+			zone.prepareHelmTemplates(componentName, role)
+			zone.prepareHelmCRDs(componentName, role)
+		}
+	}
+	return nil
+}
+
+func (zone *Zone) prepareHelmDir() error {
+	if err := os.RemoveAll(zone.HelmDir); err != nil {
+		msg := fmt.Sprintf("clear helm dir failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	if err := os.MkdirAll(path.Join(zone.HelmChartDir(), "templates"), os.ModePerm); err != nil {
+		msg := fmt.Sprintf("create helm chart templates dir failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	if err := os.MkdirAll(path.Join(zone.HelmChartDir(), "crds"), os.ModePerm); err != nil {
+		msg := fmt.Sprintf("create helm chart crds dir failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	if err := os.Symlink(zone.ResourcesDir, path.Join(zone.HelmChartDir(), "resources")); err != nil {
+		msg := fmt.Sprintf("create resources symlink failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	if err := os.Symlink(zone.VarsFile, path.Join(zone.HelmChartDir(), "values.yml")); err != nil {
+		msg := fmt.Sprintf("create values.yml symlink failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	if _, err := os.Stat(zone.Product.helmChartFile); err == nil {
+		if err := copyFile(zone.Product.helmChartFile, path.Join(zone.HelmChartDir(), "Chart.yml")); err != nil {
+			msg := fmt.Sprintf("copy Chart.yml failed, err: %s", err)
+			return errors.New(msg)
+		}
+	}
+
+	return nil
+}
+
+func (zone *Zone) prepareHelmTemplates(componetName string, roleName string) error {
+	roleDir := path.Join(zone.Product.rolesDir, roleName)
+	roleHelmTemplatesDir := path.Join(roleDir, "helm", "templates")
+
+	helmTemplates := []string{}
+	filepath.WalkDir(roleHelmTemplatesDir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
+			return nil
+		}
+		helmTemplates = append(helmTemplates, path)
+		return nil
+	})
+
+	for _, helmTemplate := range helmTemplates {
+		fileBasename := path.Base(helmTemplate)
+		newFileBasename := fmt.Sprintf("%s-%s", componetName, fileBasename)
+		dstFile := path.Join(zone.HelmChartDir(), "templates", newFileBasename)
+		if err := copyFile(helmTemplate, dstFile); err != nil {
+			msg := fmt.Sprintf("copy file failed, err: %s", err)
+			return errors.New(msg)
+		}
+	}
+
+	return nil
+}
+
+func (zone *Zone) prepareHelmCRDs(componetName string, roleName string) error {
+	roleDir := path.Join(zone.Product.rolesDir, roleName)
+	roleHelmCRDsDir := path.Join(roleDir, "helm", "crds")
+
+	helmCRDs := []string{}
+	filepath.WalkDir(roleHelmCRDsDir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
+			return nil
+		}
+		helmCRDs = append(helmCRDs, path)
+		return nil
+	})
+
+	for _, helmCRD := range helmCRDs {
+		fileBasename := path.Base(helmCRD)
+		newFileBasename := fmt.Sprintf("%s-%s", componetName, fileBasename)
+		dstFile := path.Join(zone.HelmChartDir(), "crds", newFileBasename)
+		if err := copyFile(helmCRD, dstFile); err != nil {
+			msg := fmt.Sprintf("copy file failed, err: %s", err)
+			return errors.New(msg)
+		}
+	}
+
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	input, err := ioutil.ReadFile(src)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(dst, input, 0644)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (zone *Zone) Compute() error {
 	if err := zone.CMDB.Compute(zone.Product.Components); err != nil {
-		msg := fmt.Sprintf("zone CMDB Compute failed, err: %s", err)
+		msg := fmt.Sprintf("compute zone CMDB failed, err: %s", err)
 		return errors.New(msg)
 	}
 
 	if err := zone.Product.Compute(zone.CMDB); err != nil {
-		msg := fmt.Sprintf("zone Product Compute failed, err: %s", err)
+		msg := fmt.Sprintf("compute zone product failed, err: %s", err)
 		return errors.New(msg)
 	}
 	return nil
@@ -156,13 +292,13 @@ func (zone *Zone) determineProduct() (string, error) {
 
 	product, ok := m[ProductMetavar]
 	if !ok {
-		msg := fmt.Sprintf("Not found (%s) variable in vars.yml file for target/zone: (%s/%s), you have to fix that before continue", ProductMetavar, zone.TargetName, zone.ZoneName)
+		msg := fmt.Sprintf("not found (%s) variable in vars.yml file for target/zone: (%s/%s), you have to fix that before continue", ProductMetavar, zone.TargetName, zone.ZoneName)
 		return "", errors.New(msg)
 	}
 
 	p, ok := product.(string)
 	if !ok {
-		msg := fmt.Sprintf("The value of (%s) variable is not a string", ProductMetavar)
+		msg := fmt.Sprintf("the value of (%s) variable is not a string", ProductMetavar)
 		return "", errors.New(msg)
 	}
 

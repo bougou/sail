@@ -71,10 +71,10 @@ func (o *ConfUpdateOptions) Complete(cmd *cobra.Command, args []string) error {
 
 func (o *ConfUpdateOptions) Validate() error {
 	if o.TargetName == "" {
-		return errors.New("Must specify target name")
+		return errors.New("must specify target name")
 	}
 	if o.ZoneName == "" {
-		return errors.New("Must specify zone name")
+		return errors.New("must specify zone name")
 	}
 
 	return nil
@@ -90,7 +90,7 @@ func (o *ConfUpdateOptions) Run() error {
 
 	m, err := options.ParseHostsOption(o.Hosts)
 	if err != nil {
-		msg := fmt.Sprintf("ParseHostsOption failed, err: %s", err)
+		msg := fmt.Sprintf("parse hosts option failed, err: %s", err)
 		return errors.New(msg)
 	}
 	zone.PatchActionHostsMap(m)

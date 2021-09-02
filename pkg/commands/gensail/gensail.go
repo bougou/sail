@@ -56,7 +56,7 @@ func (o *GenSailOptions) Complete(cmd *cobra.Command, args []string) error {
 	o.productDir = path.Join(o.sailOption.ProductsDir, o.productName)
 	stat, err := os.Stat(o.productDir)
 	if err != nil || !stat.IsDir() {
-		msg := fmt.Sprintf("Not found dir of product, %s does not exist", o.productDir)
+		msg := fmt.Sprintf("not found dir of product, %s does not exist", o.productDir)
 		return errors.New(msg)
 	}
 
@@ -76,7 +76,7 @@ func (o *GenSailOptions) Run() error {
 
 	playbook, err := product.GenSail()
 	if err != nil {
-		msg := fmt.Sprintf("GenSail failed, err: %s", err)
+		msg := fmt.Sprintf("gen sail playbook failed, err: %s", err)
 		return errors.New(msg)
 	}
 

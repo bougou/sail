@@ -64,10 +64,10 @@ func (o *UpgradeOptions) Complete(cmd *cobra.Command, args []string) error {
 
 func (o *UpgradeOptions) Validate() error {
 	if o.TargetName == "" {
-		return errors.New("Must specify target name")
+		return errors.New("must specify target name")
 	}
 	if o.ZoneName == "" {
-		return errors.New("Must specify zone name")
+		return errors.New("must specify zone name")
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func (o *UpgradeOptions) Run(args []string) error {
 
 	m, err := options.ParseComponentOption(o.Components)
 	if err != nil {
-		msg := fmt.Sprintf("ParseComponentOption failed, err: %s", err)
+		msg := fmt.Sprintf("parse component option failed, err: %s", err)
 		return errors.New(msg)
 	}
 

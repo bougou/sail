@@ -47,6 +47,6 @@ func (o *XOptions) Validate() error {
 }
 
 func (o *XOptions) Run(args []string) error {
-	fmt.Println("Specify a concret command under x")
+	fmt.Println("specify a concret command under x")
 	return nil
 }

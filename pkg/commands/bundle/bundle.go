@@ -56,7 +56,7 @@ func (o *BundleOptions) Complete(cmd *cobra.Command, args []string) error {
 	o.productDir = path.Join(o.sailOption.ProductsDir, o.productName)
 	stat, err := os.Stat(o.productDir)
 	if err != nil || !stat.IsDir() {
-		msg := fmt.Sprintf("Not found dir of product, %s does not exist", o.productDir)
+		msg := fmt.Sprintf("not found dir of product, %s does not exist", o.productDir)
 		return errors.New(msg)
 	}
 
@@ -75,7 +75,7 @@ func (o *BundleOptions) Run() error {
 	}
 
 	components := product.ComponentList()
-	fmt.Printf("The product %s contains the following components:\n", o.productName)
+	fmt.Printf("the product %s contains the following components:\n", o.productName)
 	for _, c := range components {
 		fmt.Printf("- %s\n", c)
 	}

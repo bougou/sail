@@ -64,7 +64,7 @@ func (s *Service) Check() error {
 		errmsgs = append(errmsgs, err.Error())
 	}
 
-	msg := fmt.Sprintf("Check service (%s) failed, err: %s", s.Name, strings.Join(errmsgs, "; "))
+	msg := fmt.Sprintf("check service (%s) failed, err: %s", s.Name, strings.Join(errmsgs, "; "))
 	return errors.New(msg)
 }
 
@@ -99,6 +99,9 @@ func (s *Service) Compute(external bool, cmdb *CMDB) (*ServiceComputed, error) {
 func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
 	svcComputed := NewServiceComputed()
 	svcComputed.Scheme = s.Scheme
+	if svcComputed.Scheme == "" {
+		svcComputed.Scheme = "tcp"
+	}
 
 	var host string
 	if s.Host != "" {

@@ -39,6 +39,8 @@ type Product struct {
 	varsFile       string
 	runFile        string
 	migrateFile    string
+	rolesDir       string
+	helmChartFile  string
 
 	defaultPlaybook string
 }
@@ -46,7 +48,7 @@ type Product struct {
 func (p *Product) Compute(cmdb *CMDB) error {
 	for k, c := range p.Components {
 		if err := c.Compute(cmdb); err != nil {
-			msg := fmt.Sprintf("Product comoponent (%s) compute failed, err: %s", k, err)
+			msg := fmt.Sprintf("compute product comoponent (%s) failed, err: %s", k, err)
 			return errors.New(msg)
 		}
 	}
@@ -71,6 +73,8 @@ func NewProduct(name string, baseDir string) *Product {
 		componentsFile:  path.Join(baseDir, name, "components.yml"),
 		componentsDir:   path.Join(baseDir, name, "components"),
 		migrateFile:     path.Join(baseDir, name, "migrate.yml"),
+		rolesDir:        path.Join(baseDir, name, "roles"),
+		helmChartFile:   path.Join(baseDir, name, "Chart.yml"),
 	}
 
 	return p
@@ -164,7 +168,7 @@ func (p *Product) GenSail() (ansible.Playbook, error) {
 		c := p.components[compName]
 		play, err := c.GenAnsiblePlay()
 		if err != nil {
-			msg := fmt.Sprintf("GenAnsiblePlay for component (%s) failed, err: %s", c.Name, err)
+			msg := fmt.Sprintf("gen ansible playbook for component (%s) failed, err: %s", c.Name, err)
 			return nil, errors.New(msg)
 		}
 		out = append(out, *play)
@@ -250,7 +254,7 @@ func (p *Product) loadDefaultComponents() error {
 func (p *Product) loadComponentFile(file string) error {
 	b, err := os.ReadFile(file)
 	if err != nil {
-		msg := fmt.Sprintf("ReadFile failed, err: %s", err)
+		msg := fmt.Sprintf("read file failed, err: %s", err)
 		return errors.New(msg)
 	}
 
@@ -329,7 +333,7 @@ func (p *Product) Check() error {
 		errmsgs = append(errmsgs, err.Error())
 	}
 
-	msg := fmt.Sprintf("Check product (%s) faield, err: %s", p.Name, strings.Join(errmsgs, "; "))
+	msg := fmt.Sprintf("check product (%s) faield, err: %s", p.Name, strings.Join(errmsgs, "; "))
 	return errors.New(msg)
 
 	// Todo call checkPortsConflict

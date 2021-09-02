@@ -67,7 +67,7 @@ func (o *GenCertOptions) Complete(cmd *cobra.Command, args []string) error {
 
 	if o.OutputDir == "" {
 		if o.TargetName == "" || o.ZoneName == "" {
-			msg := fmt.Sprintf("Must specify --output-dir or specify target/zone name")
+			msg := fmt.Sprintf("must specify --output-dir or specify target/zone name")
 			return errors.New(msg)
 		}
 
@@ -82,7 +82,7 @@ func (o *GenCertOptions) Validate() error {
 }
 
 func (o *GenCertOptions) Run(args []string) error {
-	fmt.Printf("Output dir for certs: %s\n", o.OutputDir)
+	fmt.Printf("output dir for certs: %s\n", o.OutputDir)
 	if o.TargetName != "" && o.ZoneName != "" {
 		fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
 	}
@@ -121,7 +121,7 @@ func (o *GenCertOptions) genCert() error {
 	caCertFile := path.Join(o.OutputDir, o.CAName+cert.CertFileSuffix)
 	caKC, err := cert.LoadKeyCertPEMFile(caKeyFile, caCertFile)
 	if err != nil {
-		msg := fmt.Sprintf("Load CA key and cert file failed, err: %s", err)
+		msg := fmt.Sprintf("load CA key and cert file failed, err: %s", err)
 		return errors.New(msg)
 	}
 	for _, name := range o.Names {
