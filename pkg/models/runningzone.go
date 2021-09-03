@@ -79,11 +79,11 @@ func (rz *RunningZone) Run(args []string) error {
 
 	cmd := exec.CommandContext(ctx, "ansible-playbook", rz.ansiblePlaybookArgs...)
 	env := []string{
-		"ANSIBLE_FORCE_COLOR=true", // this env vars will make ansible-playbook always output color
+		"ANSIBLE_FORCE_COLOR=true", // this env var will make ansible-playbook always output color
 		"ANSIBLE_CONFIG=" + rz.zone.ansibleCfgFile,
 	}
 
-	logFileName := "/tmp/log.txt"
+	logFileName := "/tmp/sail.log"
 	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		return fmt.Errorf("can not create log file: %s, exit", logFileName)

@@ -49,10 +49,6 @@ type Zone struct {
 
 	ansibleCfgFile string
 
-	targetBackupDir string
-
-	baseExecCmd string
-
 	sailOption *SailOption
 }
 
@@ -309,10 +305,6 @@ func (zone *Zone) HandleCompatibity() {
 	// Todo
 	// Domain Specific Language (Declarative)
 	// migrate.yml
-}
-
-func (zone *Zone) check() error {
-	return nil
 }
 
 func (zone *Zone) Dump() error {

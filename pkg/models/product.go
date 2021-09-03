@@ -316,7 +316,7 @@ func (p *Product) LoadZone(zoneVarsFile string) error {
 	return nil
 }
 
-func (p *Product) Check() error {
+func (p *Product) Check(cmdb *CMDB) error {
 	errs := []error{}
 	for _, c := range p.Components {
 		if err := c.Check(); err != nil {
@@ -333,13 +333,18 @@ func (p *Product) Check() error {
 		errmsgs = append(errmsgs, err.Error())
 	}
 
+	// Todo call checkPortsConflict
+	if err := p.checkPortsConflict(cmdb); err != nil {
+		errmsg := "check port conflict failed"
+		errmsgs = append(errmsgs, errmsg)
+	}
+
 	msg := fmt.Sprintf("check product (%s) faield, err: %s", p.Name, strings.Join(errmsgs, "; "))
 	return errors.New(msg)
-
-	// Todo call checkPortsConflict
 }
 
 // checkPortsConflict
+// Todo
 // if multiple components are installed on same hosts, the listened ports of those components may be conflicted.
 func (p *Product) checkPortsConflict(cmdb *CMDB) error {
 	return nil

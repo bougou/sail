@@ -47,12 +47,12 @@ func (s *Service) Check() error {
 	errs := []error{}
 
 	if s.Scheme == "" {
-		msg := fmt.Sprintf("the scheme of service can not be empty")
+		msg := fmt.Sprintf("the scheme of service (%s) can not be empty", s.Name)
 		errs = append(errs, errors.New(msg))
 	}
 
 	if s.Port == 0 {
-		msg := fmt.Sprintf("the port of service can not be 0")
+		msg := fmt.Sprintf("the port of service (%s) can not be 0", s.Name)
 		errs = append(errs, errors.New(msg))
 	}
 	if len(errs) == 0 {
@@ -144,9 +144,7 @@ func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
 	}
 
 	if len(s.URLs) != 0 {
-		for _, v := range s.URLs {
-			svcComputed.URLs = append(svcComputed.URLs, v)
-		}
+		svcComputed.URLs = append(svcComputed.URLs, s.URLs...)
 	} else {
 		for _, v := range svcComputed.Endpoints {
 			url := fmt.Sprintf("%s://%s", svcComputed.Scheme, v)
@@ -187,9 +185,7 @@ func (s *Service) computeExternal() (*ServiceComputed, error) {
 	}
 
 	if len(s.URLs) != 0 {
-		for _, v := range s.URLs {
-			svcComputed.URLs = append(svcComputed.URLs, v)
-		}
+		svcComputed.URLs = append(svcComputed.URLs, s.URLs...)
 	} else {
 		for _, v := range svcComputed.Endpoints {
 			url := fmt.Sprintf("%s://%s", svcComputed.Scheme, v)
