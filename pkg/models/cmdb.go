@@ -3,8 +3,18 @@ package models
 import "github.com/bougou/sail/pkg/ansible"
 
 type CMDB struct {
-	Inventory *ansible.Inventory     `yaml:"inventory"` // Ansible 格式的主机清单
-	Platforms map[string]interface{} `yaml:"platforms"` // 非主机部署形态
+	Inventory *ansible.Inventory  `yaml:"inventory"` // Ansible 格式的主机清单
+	Platforms map[string]Platform `yaml:"platforms"` // 非主机部署形态, map key is component name or 'all'
+}
+
+type Platform struct {
+	K8S *K8S `yaml:"k8s"`
+}
+
+type K8S struct {
+	KuebConfig  string `yaml:"kubeConfig"`
+	KubeContext string `yaml:"kubeContext"`
+	Namespace   string `yaml:"namespace"`
 }
 
 func NewCMDB() *CMDB {
@@ -13,7 +23,7 @@ func NewCMDB() *CMDB {
 
 	return &CMDB{
 		Inventory: i,
-		Platforms: make(map[string]interface{}),
+		Platforms: make(map[string]Platform),
 	}
 }
 

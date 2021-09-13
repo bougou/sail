@@ -3,11 +3,8 @@ package models
 import (
 	"errors"
 	"fmt"
-	"io/fs"
-	"io/ioutil"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"log"
@@ -18,20 +15,22 @@ import (
 )
 
 const (
-	ProductMetavar = "_sail_product"
+	SailMetaVarProduct  = "_sail_product"
+	SailMetaVarHelmMode = "_sail_helm_mode"
+
+	SailHelmModeComponent = "component"
+	SailHelmModeProduct   = "product"
 )
 
-type SailOption struct {
-	ProductsDir string
-	PackagesDir string
-	TargetsDir  string
-
-	DefaultTarget string
-	DefaultZone   string
+type ZoneMeta struct {
+	// Product Name
+	SailProduct  string `json:"_sail_product" yaml:"_sail_product"`     // tag value must equal to SailMetaVarProduct
+	SailHelmMode string `json:"_sail_helm_mode" yaml:"_sail_helm_mode"` // tag value must equal to SailMetaVarHelmMode
 }
 
 type Zone struct {
-	ProductName  string `yaml:"-"`
+	*ZoneMeta
+
 	TargetName   string
 	ZoneName     string
 	TargetDir    string
@@ -79,180 +78,63 @@ func NewZone(sailOption *SailOption, targetName string, zoneName string) *Zone {
 	return zone
 }
 
-// Load initialize the zone with specified product.
-// If exists is true, means the zone alredy exist, it will try to determine the product name from zone vars file.
-// If exists is false, means the zone is newly created, the zone.ProductName should already be filled.
-func (zone *Zone) Load(exists bool) error {
-	if exists {
-		productName, err := zone.determineProduct()
-		if err != nil {
-			msg := fmt.Sprintf("determine product failed, err: %s", err)
-			return errors.New(msg)
-		}
-		zone.ProductName = productName
-	}
-
-	if zone.ProductName == "" {
+// LoadNew fill vars to zone. The zone is treated as a newly created zone.
+// So it will ONLY load default varibles from product.
+// This method is ONLY called when `conf-create`.
+func (zone *Zone) LoadNew() error {
+	// for newly created zone, the zone.ProductName is set by conf-create
+	if zone.SailProduct == "" {
 		return errors.New("empty product name")
 	}
-
-	product := NewProduct(zone.ProductName, zone.sailOption.ProductsDir)
+	product := NewProduct(zone.SailProduct, zone.sailOption.ProductsDir)
 	if err := product.Init(); err != nil {
 		msg := fmt.Sprintf("init product failed, err: %s", err)
 		return errors.New(msg)
 	}
 
-	if exists {
-		if err := zone.LoadHosts(); err != nil {
-			msg := fmt.Sprintf("load hosts failed, err: %s", err)
-			return errors.New(msg)
-		}
+	zone.Product = product
 
-		if err := product.LoadZone(zone.VarsFile); err != nil {
-			msg := fmt.Sprintf("load zone vars failed, err: %s", err)
-			return errors.New(msg)
-		}
+	// fill zone meta vars
+	zone.Product.Vars[SailMetaVarProduct] = zone.SailProduct
+	zone.Product.Vars[SailMetaVarHelmMode] = zone.SailHelmMode
+
+	return nil
+}
+
+// Load initialize the zone. The zone is supposed to be already exists.
+// It will try to determine the product name from zone vars file.
+func (zone *Zone) Load() error {
+	zoneMeta, err := zone.ParseZoneMeta()
+	if err != nil {
+		return fmt.Errorf("parse zone meta failed, err: %s", err)
+	}
+	zone.ZoneMeta = zoneMeta
+
+	if zone.SailProduct == "" {
+		return errors.New("empty product name")
 	}
 
-	// Todo
-	// if err := product.Check(); err != nil {
-	// 	msg := fmt.Sprintf("product Check failed, err: %s", err)
-	// 	return errors.New(msg)
-	// }
+	product := NewProduct(zone.SailProduct, zone.sailOption.ProductsDir)
+	if err := product.Init(); err != nil {
+		msg := fmt.Sprintf("init product failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	if err := zone.LoadHosts(); err != nil {
+		msg := fmt.Sprintf("load hosts failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	if err := product.LoadZone(zone.VarsFile); err != nil {
+		msg := fmt.Sprintf("load zone vars failed, err: %s", err)
+		return errors.New(msg)
+	}
 
 	zone.Product = product
-	zone.Product.Vars[ProductMetavar] = zone.ProductName
 
 	if err := zone.PrepareHelm(); err != nil {
-		msg := fmt.Sprintf("prepare zone helm failed, err: %s", err)
+		msg := fmt.Sprintf("prepare helm failed, err: %s", err)
 		return errors.New(msg)
-	}
-
-	return nil
-}
-
-func (zone *Zone) HelmChartDir() string {
-	return path.Join(zone.HelmDir, zone.ProductName)
-}
-
-func (zone *Zone) PrepareHelm() error {
-	if err := zone.prepareHelmDir(); err != nil {
-		return err
-	}
-
-	for _, componentName := range zone.Product.ComponentList() {
-		component := zone.Product.components[componentName]
-		for _, role := range component.GetRoles() {
-			zone.prepareHelmTemplates(componentName, role)
-			zone.prepareHelmCRDs(componentName, role)
-		}
-	}
-	return nil
-}
-
-func (zone *Zone) prepareHelmDir() error {
-	if err := os.RemoveAll(zone.HelmDir); err != nil {
-		msg := fmt.Sprintf("clear helm dir failed, err: %s", err)
-		return errors.New(msg)
-	}
-
-	if err := os.MkdirAll(path.Join(zone.HelmChartDir(), "templates"), os.ModePerm); err != nil {
-		msg := fmt.Sprintf("create helm chart templates dir failed, err: %s", err)
-		return errors.New(msg)
-	}
-
-	if err := os.MkdirAll(path.Join(zone.HelmChartDir(), "crds"), os.ModePerm); err != nil {
-		msg := fmt.Sprintf("create helm chart crds dir failed, err: %s", err)
-		return errors.New(msg)
-	}
-
-	if err := os.Symlink(zone.ResourcesDir, path.Join(zone.HelmChartDir(), "resources")); err != nil {
-		msg := fmt.Sprintf("create resources symlink failed, err: %s", err)
-		return errors.New(msg)
-	}
-
-	if err := os.Symlink(zone.VarsFile, path.Join(zone.HelmChartDir(), "values.yml")); err != nil {
-		msg := fmt.Sprintf("create values.yml symlink failed, err: %s", err)
-		return errors.New(msg)
-	}
-
-	if _, err := os.Stat(zone.Product.helmChartFile); err == nil {
-		if err := copyFile(zone.Product.helmChartFile, path.Join(zone.HelmChartDir(), "Chart.yml")); err != nil {
-			msg := fmt.Sprintf("copy Chart.yml failed, err: %s", err)
-			return errors.New(msg)
-		}
-	}
-
-	return nil
-}
-
-func (zone *Zone) prepareHelmTemplates(componetName string, roleName string) error {
-	roleDir := path.Join(zone.Product.rolesDir, roleName)
-	roleHelmTemplatesDir := path.Join(roleDir, "helm", "templates")
-
-	helmTemplates := []string{}
-	filepath.WalkDir(roleHelmTemplatesDir, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
-			return nil
-		}
-		helmTemplates = append(helmTemplates, path)
-		return nil
-	})
-
-	for _, helmTemplate := range helmTemplates {
-		fileBasename := path.Base(helmTemplate)
-		newFileBasename := fmt.Sprintf("%s-%s", componetName, fileBasename)
-		dstFile := path.Join(zone.HelmChartDir(), "templates", newFileBasename)
-		if err := copyFile(helmTemplate, dstFile); err != nil {
-			msg := fmt.Sprintf("copy file failed, err: %s", err)
-			return errors.New(msg)
-		}
-	}
-
-	return nil
-}
-
-func (zone *Zone) prepareHelmCRDs(componetName string, roleName string) error {
-	roleDir := path.Join(zone.Product.rolesDir, roleName)
-	roleHelmCRDsDir := path.Join(roleDir, "helm", "crds")
-
-	helmCRDs := []string{}
-	filepath.WalkDir(roleHelmCRDsDir, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
-			return nil
-		}
-		helmCRDs = append(helmCRDs, path)
-		return nil
-	})
-
-	for _, helmCRD := range helmCRDs {
-		fileBasename := path.Base(helmCRD)
-		newFileBasename := fmt.Sprintf("%s-%s", componetName, fileBasename)
-		dstFile := path.Join(zone.HelmChartDir(), "crds", newFileBasename)
-		if err := copyFile(helmCRD, dstFile); err != nil {
-			msg := fmt.Sprintf("copy file failed, err: %s", err)
-			return errors.New(msg)
-		}
-	}
-
-	return nil
-}
-
-func copyFile(src, dst string) error {
-	input, err := ioutil.ReadFile(src)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(dst, input, 0644)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -271,34 +153,25 @@ func (zone *Zone) Compute() error {
 	return nil
 }
 
-// determineProduct derive the product name from zone vars file
-func (zone *Zone) determineProduct() (string, error) {
+func (zone *Zone) ParseZoneMeta() (*ZoneMeta, error) {
 	b, err := os.ReadFile(zone.VarsFile)
 	if err != nil {
 		msg := fmt.Sprintf("read zone vars file failed, err: %s", err)
-		return "", errors.New(msg)
+		return nil, errors.New(msg)
 	}
 
-	m := map[string]interface{}{}
-
+	m := &ZoneMeta{}
 	if err := yaml.Unmarshal(b, &m); err != nil {
 		msg := fmt.Sprintf("yaml unmarshal failed, err: %s", err)
-		return "", errors.New(msg)
+		return nil, errors.New(msg)
 	}
 
-	product, ok := m[ProductMetavar]
-	if !ok {
-		msg := fmt.Sprintf("not found (%s) variable in vars.yml file for target/zone: (%s/%s), you have to fix that before continue", ProductMetavar, zone.TargetName, zone.ZoneName)
-		return "", errors.New(msg)
+	if m.SailProduct == "" {
+		msg := fmt.Sprintf("not found (%s) variable in %s, you have to fix that before continue", SailMetaVarProduct, zone.VarsFile)
+		return nil, errors.New(msg)
 	}
 
-	p, ok := product.(string)
-	if !ok {
-		msg := fmt.Sprintf("the value of (%s) variable is not a string", ProductMetavar)
-		return "", errors.New(msg)
-	}
-
-	return p, nil
+	return m, nil
 }
 
 func (zone *Zone) HandleCompatibity() {
@@ -421,21 +294,21 @@ func (zone *Zone) BuildInventory(hostsMap map[string][]string) error {
 	return nil
 }
 
-func (zone *Zone) PlaybookFile(playbook string) string {
-	if playbook == "" {
-		playbook = DefaultPlaybook
+func (zone *Zone) PlaybookFile(playbookName string) string {
+	if playbookName == "" {
+		playbookName = DefaultPlaybook
 	}
 
-	if strings.HasSuffix(playbook, ".yml") || strings.HasSuffix(playbook, ".yaml") {
-		return path.Join(zone.Product.dir, playbook)
+	if strings.HasSuffix(playbookName, ".yml") || strings.HasSuffix(playbookName, ".yaml") {
+		return path.Join(zone.Product.dir, playbookName)
 	}
 
 	var f string
-	f = path.Join(zone.Product.dir, playbook+".yml")
+	f = path.Join(zone.Product.dir, playbookName+".yml")
 	if _, err := os.Stat(f); !os.IsNotExist(err) {
 		return f
 	}
-	f = path.Join(zone.Product.dir, playbook+".yaml")
+	f = path.Join(zone.Product.dir, playbookName+".yaml")
 	if _, err := os.Stat(f); !os.IsNotExist(err) {
 		return f
 	}
@@ -469,6 +342,28 @@ func (zone *Zone) LoadHosts() error {
 	return nil
 }
 
-// Todo, construct Helm chart from the helm dir of each component of the product.
-func (zone *Zone) Helm() {
+func (zone *Zone) GetK8SForComponent(componentName string) *K8S {
+	if platform, ok := zone.CMDB.Platforms[componentName]; ok {
+		if platform.K8S != nil {
+			return platform.K8S
+		}
+	}
+
+	if platform, ok := zone.CMDB.Platforms["all"]; ok {
+		if platform.K8S != nil {
+			return platform.K8S
+		}
+	}
+
+	return &K8S{}
+}
+
+func (zone *Zone) GetK8SForProduct() *K8S {
+	if platform, ok := zone.CMDB.Platforms["all"]; ok {
+		if platform.K8S != nil {
+			return platform.K8S
+		}
+	}
+
+	return &K8S{}
 }

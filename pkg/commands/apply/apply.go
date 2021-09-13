@@ -3,11 +3,10 @@ package apply
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/bougou/gopkg/common"
-	"github.com/bougou/sail/pkg/ansible"
 	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/options"
 	"github.com/spf13/cobra"
 )
 
@@ -27,12 +26,12 @@ func NewCmdApply(sailOption *models.SailOption) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&o.TargetName, "target", "t", o.TargetName, "target name")
-
 	cmd.Flags().StringVarP(&o.ZoneName, "zone", "z", o.ZoneName, "zone name")
-
 	cmd.Flags().StringVarP(&o.Playbook, "playbook", "p", "run", "optional playbook name")
-
 	cmd.Flags().StringVarP(&o.StartAtPlay, "start-at-play", "", "", "start the playbook from the play with this tag name")
+	cmd.Flags().StringArrayVarP(&o.Components, "component", "c", o.Components, "the component")
+	cmd.Flags().BoolVarP(&o.Ansible, "ansible", "", o.Ansible, "choose components deployed as server")
+	cmd.Flags().BoolVarP(&o.Helm, "helm", "", o.Helm, "choose components deployed as pod")
 
 	return cmd
 }
@@ -43,7 +42,12 @@ type ApplyOptions struct {
 	Playbook   string `json:"playbook"`
 
 	StartAtPlay string `json:"start_at_playbook"`
-	sailOption  *models.SailOption
+
+	Components []string `json:"component"`
+	Ansible    bool     `json:"ansible"`
+	Helm       bool     `json:"helm"`
+
+	sailOption *models.SailOption
 }
 
 func NewApplyOptions(sailOption *models.SailOption) *ApplyOptions {
@@ -70,8 +74,14 @@ func (o *ApplyOptions) Validate() error {
 func (o *ApplyOptions) Run(args []string) error {
 	fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
-	if err := zone.Load(true); err != nil {
+	if err := zone.Load(); err != nil {
 		return err
+	}
+
+	serverComponents, podComponents, err := options.ParseChoosedComponents(zone, o.Components, o.Ansible, o.Helm)
+	if err != nil {
+		msg := fmt.Sprintf("parse component option failed, err: %s", err)
+		return errors.New(msg)
 	}
 
 	if err := zone.Dump(); err != nil {
@@ -79,25 +89,16 @@ func (o *ApplyOptions) Run(args []string) error {
 		return errors.New(msg)
 	}
 
-	playbookFile := zone.PlaybookFile(o.Playbook)
-	playbook, err := ansible.NewPlaybookFromFile(playbookFile)
-	if err != nil {
-		return err
+	var ansiblePlaybookTags []string
+	for componentName := range serverComponents {
+		ansiblePlaybookTag := componentName
+		ansiblePlaybookTags = append(ansiblePlaybookTags, ansiblePlaybookTag)
 	}
-
-	playbookTags := []string{}
-	if o.StartAtPlay != "" {
-		playbookTags = playbook.PlaysTagsStartAt(o.StartAtPlay)
-	}
-
-	playbookArgs := []string{}
-	if len(playbookTags) != 0 {
-		// Note, CANNOT pass "--tags tag1,tag2" as one item into the slice
-		playbookArgs = append(playbookArgs, "--tags", strings.Join(playbookTags, ","))
-	}
-
-	playbookArgs = append(playbookArgs, args...)
 
 	rz := models.NewRunningZone(zone, o.Playbook)
-	return rz.Run(playbookArgs)
+	rz.WithServerComponents(serverComponents)
+	rz.WithPodComponents(podComponents)
+	rz.WithAnsiblePlaybookTags(ansiblePlaybookTags)
+
+	return rz.Run(args)
 }

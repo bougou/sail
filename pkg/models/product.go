@@ -23,9 +23,9 @@ type Product struct {
 	Name string `json:"Name,omitempty"  yaml:"Name,omitempty"`
 
 	// zone vars of product
-	Components map[string]*Component `json:"Components,omitempty" yaml:"Components,omitempty"`
-	// zone components of product
 	Vars map[string]interface{} `json:"Vars,omitempty" yaml:"Vars,omitempty"`
+	// zone components of product
+	Components map[string]*Component `json:"Components,omitempty" yaml:"Components,omitempty"`
 
 	// default vars of product, it should be read only
 	vars map[string]interface{}
@@ -74,7 +74,7 @@ func NewProduct(name string, baseDir string) *Product {
 		componentsDir:   path.Join(baseDir, name, "components"),
 		migrateFile:     path.Join(baseDir, name, "migrate.yml"),
 		rolesDir:        path.Join(baseDir, name, "roles"),
-		helmChartFile:   path.Join(baseDir, name, "Chart.yml"),
+		helmChartFile:   path.Join(baseDir, name, "Chart.yaml"),
 	}
 
 	return p
@@ -144,6 +144,49 @@ func (p *Product) ComponentList() []string {
 	out := []string{}
 	for k := range p.Components {
 		out = append(out, k)
+	}
+
+	sorted := sort.StringSlice(out)
+	sort.Sort(sorted)
+	return sorted
+}
+
+type FilterOption func(c *Component) bool
+
+func FilterOptionEnabled(c *Component) bool {
+	return c.Enabled
+}
+
+func FilterOptionDisabled(c *Component) bool {
+	return !c.Enabled
+}
+
+func FilterOptionFormPod(c *Component) bool {
+	return c.Form == ComponentFormPod
+}
+
+func FilterOptionFormServer(c *Component) bool {
+	return c.Form != ComponentFormPod
+}
+
+func NewFilterOptionByComponentsMap(m map[string]string) FilterOption {
+	return func(c *Component) bool {
+		if _, ok := m[c.Name]; ok {
+			return true
+		}
+		return false
+	}
+}
+
+func (p *Product) ComponentListWithFitlerOptions(filterOptions ...FilterOption) []string {
+	out := []string{}
+	for componentName, component := range p.Components {
+		for _, filterOption := range filterOptions {
+			if filterOption(component) {
+				out = append(out, componentName)
+				break
+			}
+		}
 	}
 
 	sorted := sort.StringSlice(out)

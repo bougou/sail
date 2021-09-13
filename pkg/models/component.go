@@ -9,15 +9,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	ComponentFormPod    = "pod"
+	ComponentFormServer = "server"
+)
+
 // Component represents the configuration of a component.
 type Component struct {
 	Name    string `yaml:"-"`
 	Version string `yaml:"version"`
 
 	// If RoleName is empty, it will be set to same with Name.
-	RoleName string `yaml:"role_name"`
+	RoleName string `yaml:"roleName"`
 
-	// Form represents the installation method of this component, valid values:
+	// Form represents the installation method of this component (组件的部署形态), valid values:
 	//  * server
 	//  * pod
 	Form string `yaml:"form"`
@@ -77,6 +82,13 @@ func NewComponent(name string) *Component {
 		Vars:         make(map[string]interface{}),
 		Tags:         make(map[string]interface{}),
 	}
+}
+
+func (c *Component) GetRoleName() string {
+	if c.RoleName != "" {
+		return c.RoleName
+	}
+	return c.Name
 }
 
 func (c *Component) Merge(in *Component) {

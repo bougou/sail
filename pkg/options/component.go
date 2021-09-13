@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/bougou/sail/pkg/models"
 )
 
 // ParseComponentOption parses --component options and interprets them as a map of components.
@@ -58,4 +60,56 @@ func ParseComponentsOption(components []string) []string {
 	}
 
 	return out
+}
+
+func ParseChoosedComponents(zone *models.Zone, components []string, ansible bool, helm bool) (map[string]string, map[string]string, error) {
+	m, err := ParseComponentOption(components)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse choosed components failed, err: %s", err)
+	}
+
+	for componentName, componentVersion := range m {
+		if componentVersion == "" {
+			zone.SetComponentVersion(componentName, componentVersion)
+		}
+	}
+
+	if ansible {
+		serverComponents := zone.Product.ComponentListWithFitlerOptions(models.FilterOptionFormServer)
+		for _, serverComponent := range serverComponents {
+			if _, exists := m[serverComponent]; !exists {
+				m[serverComponent] = ""
+			}
+		}
+	}
+	if helm {
+		podComponents := zone.Product.ComponentListWithFitlerOptions(models.FilterOptionFormPod)
+		for _, podComponent := range podComponents {
+			if _, exists := m[podComponent]; !exists {
+				m[podComponent] = ""
+			}
+		}
+	}
+
+	serverComponents := make(map[string]string)
+	podComponents := make(map[string]string)
+
+	for k, v := range m {
+		if zone.Product.HasComponent(k) {
+			component, ok := zone.Product.Components[k]
+			if !ok {
+				return nil, nil, fmt.Errorf("not found component (%s) in zone", k)
+			}
+			switch component.Form {
+			case models.ComponentFormServer:
+				serverComponents[k] = v
+			case models.ComponentFormPod:
+				podComponents[k] = v
+			default:
+				serverComponents[k] = v
+			}
+		}
+	}
+
+	return serverComponents, podComponents, nil
 }

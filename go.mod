@@ -5,7 +5,7 @@ go 1.16
 replace github.com/bougou/sail v0.0.0 => ./
 
 require (
-	github.com/bougou/gopkg v0.0.0-20210831085900-d1c35ca4318c
+	github.com/bougou/gopkg v0.0.0-20210913052334-f0c3d7f1d3a5
 	github.com/imdario/mergo v0.3.12
 	github.com/jinzhu/copier v0.3.2
 	github.com/mitchellh/go-homedir v1.1.0

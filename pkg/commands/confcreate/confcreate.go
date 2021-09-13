@@ -77,22 +77,26 @@ func (o *ConfCreateOptions) Complete(cmd *cobra.Command, args []string) error {
 func (o *ConfCreateOptions) Validate() error {
 
 	if len(o.Hosts) == 0 {
-		msg := fmt.Sprintf("must specify at least one --hosts option when create a target/zone")
-		return errors.New(msg)
+		return fmt.Errorf("must specify at least one --hosts option when create a target/zone")
 	}
 	return nil
 }
 
 func (o *ConfCreateOptions) Run() error {
 	fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
+
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if _, err := os.Stat(zone.ZoneDir); !os.IsNotExist(err) {
 		msg := fmt.Sprintf("target/zone (%s/%s) already exists, found zone dir: %s, remove the dir if you want to recreate the zone", o.TargetName, o.ZoneName, zone.ZoneDir)
 		return errors.New(msg)
 	}
 
-	zone.ProductName = o.ProductName
-	if err := zone.Load(false); err != nil {
+	zone.ZoneMeta = &models.ZoneMeta{
+		SailProduct:  o.ProductName,
+		SailHelmMode: "component",
+	}
+
+	if err := zone.LoadNew(); err != nil {
 		msg := fmt.Sprintf("zone.Load failed, err: %s", err)
 		return errors.New(msg)
 	}

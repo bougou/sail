@@ -3,7 +3,6 @@ package upgrade
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/models"
@@ -26,12 +25,10 @@ func NewCmdUpgrade(sailOption *models.SailOption) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&o.TargetName, "target", "t", o.TargetName, "target name")
-	cmd.MarkFlagRequired("target")
-
 	cmd.Flags().StringVarP(&o.ZoneName, "zone", "z", o.ZoneName, "zone name")
-	cmd.MarkFlagRequired("zone")
-
 	cmd.Flags().StringArrayVarP(&o.Components, "component", "c", o.Components, "the component")
+	cmd.Flags().BoolVarP(&o.Ansible, "ansible", "", o.Ansible, "choose components deployed as server")
+	cmd.Flags().BoolVarP(&o.Helm, "helm", "", o.Helm, "choose components deployed as pod")
 	return cmd
 }
 
@@ -40,6 +37,8 @@ type UpgradeOptions struct {
 	ZoneName   string `json:"zone_name"`
 
 	Components []string `json:"component"`
+	Ansible    bool     `json:"ansible"`
+	Helm       bool     `json:"helm"`
 
 	sailOption *models.SailOption
 }
@@ -75,25 +74,14 @@ func (o *UpgradeOptions) Validate() error {
 func (o *UpgradeOptions) Run(args []string) error {
 	fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
-	if err := zone.Load(true); err != nil {
+	if err := zone.Load(); err != nil {
 		return err
 	}
 
-	m, err := options.ParseComponentOption(o.Components)
+	serverComponents, podComponents, err := options.ParseChoosedComponents(zone, o.Components, o.Ansible, o.Helm)
 	if err != nil {
 		msg := fmt.Sprintf("parse component option failed, err: %s", err)
 		return errors.New(msg)
-	}
-
-	ansiblePlaybookTags := []string{}
-	for componentName, componentVersion := range m {
-		tag := "update-" + componentName
-		ansiblePlaybookTags = append(ansiblePlaybookTags, tag)
-
-		if componentVersion == "" {
-			continue
-		}
-		zone.SetComponentVersion(componentName, componentVersion)
 	}
 
 	if err := zone.Dump(); err != nil {
@@ -101,15 +89,17 @@ func (o *UpgradeOptions) Run(args []string) error {
 		return errors.New(msg)
 	}
 
-	rz := models.NewRunningZone(zone, zone.Product.DefaultPlaybook())
-
-	playbookArgs := []string{}
-	if len(ansiblePlaybookTags) != 0 {
-		// Note, CANNOT pass "--tags tag1,tag2" as one item into the slice
-		playbookArgs = append(playbookArgs, "--tags", strings.Join(ansiblePlaybookTags, ","))
+	var ansiblePlaybookTags []string
+	for componentName := range serverComponents {
+		// Note: Ansible Tag for update component
+		ansiblePlaybookTag := "update-" + componentName
+		ansiblePlaybookTags = append(ansiblePlaybookTags, ansiblePlaybookTag)
 	}
 
-	playbookArgs = append(playbookArgs, args...)
+	rz := models.NewRunningZone(zone, zone.Product.DefaultPlaybook())
+	rz.WithServerComponents(serverComponents)
+	rz.WithPodComponents(podComponents)
+	rz.WithAnsiblePlaybookTags(ansiblePlaybookTags)
 
-	return rz.Run(playbookArgs)
+	return rz.Run(args)
 }
