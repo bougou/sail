@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -36,6 +37,10 @@ func (p *Playbook) PlaysTags() []string {
 }
 
 func (p *Playbook) PlaysTagsStartAt(tag string) []string {
+	if !strings.HasPrefix(tag, "play-") {
+		tag = "play-" + tag
+	}
+
 	out := []string{}
 
 	playsTags := p.PlaysTags()

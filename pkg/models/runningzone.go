@@ -18,13 +18,13 @@ import (
 var defaultAnsibleCfg string
 
 type RunningZone struct {
-	zone        *Zone
-	playbook    string
-	startAtPlay string
+	zone     *Zone
+	playbook string
 
 	serverComponents []string
 	podComponents    []string
 
+	startAtPlay         string
 	ansiblePlaybookTags []string
 
 	ansiblePlaybookArgs []string
@@ -40,6 +40,10 @@ func (rz *RunningZone) WithPodComponents(podComponents map[string]string) {
 	for componentName := range podComponents {
 		rz.podComponents = append(rz.podComponents, componentName)
 	}
+}
+
+func (rz *RunningZone) WithStartAtPlay(startAtPlay string) {
+	rz.startAtPlay = startAtPlay
 }
 
 func (rz *RunningZone) WithAnsiblePlaybookTags(ansiblePlaybookTags []string) {
@@ -114,18 +118,17 @@ func (rz *RunningZone) Run(args []string) error {
 }
 
 func (rz *RunningZone) RunAnsiblePlaybook(args []string) error {
+	// ansible-playbook tags set by sail commands.
+	if len(rz.ansiblePlaybookTags) != 0 {
+		rz.ansiblePlaybookArgs = append(rz.ansiblePlaybookArgs, "--tags", strings.Join(rz.ansiblePlaybookTags, ","))
+	}
+
 	// parse ansible playbook file to get tags for startAtPlay
 	playbookFile := rz.zone.PlaybookFile(rz.playbook)
 	playbook, err := ansible.NewPlaybookFromFile(playbookFile)
 	if err != nil {
 		return err
 	}
-
-	// ansible-playbook tags set by sail commands.
-	if len(rz.ansiblePlaybookTags) != 0 {
-		rz.ansiblePlaybookArgs = append(rz.ansiblePlaybookArgs, "--tags", strings.Join(rz.ansiblePlaybookTags, ","))
-	}
-
 	if rz.startAtPlay != "" {
 		playbookTags := playbook.PlaysTagsStartAt(rz.startAtPlay)
 		if len(playbookTags) != 0 {

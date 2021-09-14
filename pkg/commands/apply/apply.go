@@ -99,6 +99,7 @@ func (o *ApplyOptions) Run(args []string) error {
 	rz.WithServerComponents(serverComponents)
 	rz.WithPodComponents(podComponents)
 	rz.WithAnsiblePlaybookTags(ansiblePlaybookTags)
+	rz.WithStartAtPlay(o.StartAtPlay)
 
 	return rz.Run(args)
 }

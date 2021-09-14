@@ -299,16 +299,11 @@ func (zone *Zone) PlaybookFile(playbookName string) string {
 		playbookName = DefaultPlaybook
 	}
 
-	if strings.HasSuffix(playbookName, ".yaml") || strings.HasSuffix(playbookName, ".yaml") {
+	if strings.HasSuffix(playbookName, ".yaml") {
 		return path.Join(zone.Product.dir, playbookName)
 	}
 
-	var f string
-	f = path.Join(zone.Product.dir, playbookName+".yaml")
-	if _, err := os.Stat(f); !os.IsNotExist(err) {
-		return f
-	}
-	f = path.Join(zone.Product.dir, playbookName+".yaml")
+	f := path.Join(zone.Product.dir, playbookName+".yaml")
 	if _, err := os.Stat(f); !os.IsNotExist(err) {
 		return f
 	}

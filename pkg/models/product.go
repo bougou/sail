@@ -31,6 +31,9 @@ type Product struct {
 	vars map[string]interface{}
 	// default components of product, it should be read only
 	components map[string]Component
+	// installation order for components, it will be used for auto generating sail ansible playbook
+	// it will be filled by product order.yaml file.
+	order []string
 
 	baseDir        string
 	dir            string
@@ -39,6 +42,7 @@ type Product struct {
 	varsFile       string
 	runFile        string
 	migrateFile    string
+	orderFile      string
 	rolesDir       string
 	helmChartFile  string
 
@@ -64,6 +68,7 @@ func NewProduct(name string, baseDir string) *Product {
 
 		components: make(map[string]Component),
 		vars:       make(map[string]interface{}),
+		order:      make([]string, 0),
 
 		defaultPlaybook: DefaultPlaybook,
 		baseDir:         baseDir,
@@ -73,6 +78,7 @@ func NewProduct(name string, baseDir string) *Product {
 		componentsFile:  path.Join(baseDir, name, "components.yaml"),
 		componentsDir:   path.Join(baseDir, name, "components"),
 		migrateFile:     path.Join(baseDir, name, "migrate.yaml"),
+		orderFile:       path.Join(baseDir, name, "order.yaml"),
 		rolesDir:        path.Join(baseDir, name, "roles"),
 		helmChartFile:   path.Join(baseDir, name, "Chart.yaml"),
 	}
@@ -91,12 +97,17 @@ func (p *Product) SailPlaybookFile() string {
 // Init will init product internal fields
 func (p *Product) Init() error {
 	if err := p.loadDefaultVars(); err != nil {
-		msg := fmt.Sprintf("load product (%s) vars failed, err: %s", p.Name, err)
+		msg := fmt.Sprintf("load product (%s) vars from file (%s) failed, err: %s", p.Name, p.varsFile, err)
 		return errors.New(msg)
 	}
 
 	if err := p.loadDefaultComponents(); err != nil {
 		msg := fmt.Sprintf("load product (%s) components failed, err: %s", p.Name, err)
+		return errors.New(msg)
+	}
+
+	if err := p.loadOrder(); err != nil {
+		msg := fmt.Sprintf("load product (%s) order from file (%s) failed, err: %s", p.Name, p.orderFile, err)
 		return errors.New(msg)
 	}
 
@@ -207,8 +218,12 @@ func (p *Product) GenSail() (ansible.Playbook, error) {
 	gatherFactsPlay.WithTags("gather-facts")
 	out = append(out, *gatherFactsPlay)
 
-	for _, compName := range p.ComponentList() {
-		c := p.components[compName]
+	for _, compName := range p.order {
+		c, exists := p.components[compName]
+		if !exists {
+			return nil, fmt.Errorf("component (%s) does not declared by product (%s)", compName, p.Name)
+		}
+
 		play, err := c.GenAnsiblePlay()
 		if err != nil {
 			msg := fmt.Sprintf("gen ansible playbook for component (%s) failed, err: %s", c.Name, err)
@@ -391,4 +406,48 @@ func (p *Product) Check(cmdb *CMDB) error {
 // if multiple components are installed on same hosts, the listened ports of those components may be conflicted.
 func (p *Product) checkPortsConflict(cmdb *CMDB) error {
 	return nil
+}
+
+// loadOrder init the order field of product.
+// It must loaded after loadComponents
+func (p *Product) loadOrder() error {
+	b, err := os.ReadFile(p.orderFile)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			msg := fmt.Sprintf("not found order file (%s) for product (%s)", p.orderFile, p.Name)
+			return errors.New(msg)
+		}
+		return err
+	}
+
+	order := make([]string, 0)
+	if err := yaml.Unmarshal(b, &order); err != nil {
+		msg := fmt.Sprintf("unmarshal order for product (%s) failed, err: %s", p.Name, err)
+		return errors.New(msg)
+	}
+
+	for _, v := range order {
+		if _, exists := p.components[v]; !exists {
+			return fmt.Errorf("component (%s) in order.yaml file does not declared by product (%s)", v, p.Name)
+		}
+	}
+
+	order = append(order, p.ComponentList()...)
+	p.order = dedupSliceString(order)
+
+	return nil
+
+}
+
+func dedupSliceString(stringSlice []string) []string {
+	keys := make(map[string]bool)
+	out := []string{}
+
+	for _, v := range stringSlice {
+		if _, exists := keys[v]; !exists {
+			keys[v] = true
+			out = append(out, v)
+		}
+	}
+	return out
 }

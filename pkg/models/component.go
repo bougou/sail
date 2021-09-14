@@ -165,7 +165,7 @@ func (c *Component) GetRoles() []string {
 func (c *Component) GenAnsiblePlay() (*ansible.Play, error) {
 	hostsPattern := fmt.Sprintf("{{ _ansiblepattern_%s | default('%s') }}", strings.ReplaceAll(c.Name, "-", "_"), c.Name)
 	play := ansible.NewPlay(c.Name, hostsPattern)
-	play.WithTags("hosts-" + c.Name)
+	play.WithTags("play-" + c.Name)
 
 	for _, r := range c.GetRoles() {
 		role := ansible.Role{
