@@ -6,7 +6,7 @@ cmdb 中存放部署产品的各个组件所用到的服务器信息或者平台
 
 ## cmdb.Inventory
 
-在实际环境的目录下（`targets/<target>/<zone>`）的 `hosts.yml` 文件，就是文本格式的 Inventory 信息。`hosts.yml` 本质上就是 Ansible 能够识别的主机清单。
+在实际环境的目录下（`targets/<target>/<zone>`）的 `hosts.yaml` 文件，就是文本格式的 Inventory 信息。`hosts.yaml` 本质上就是 Ansible 能够识别的主机清单。
 
 ### 如何更改一个主机的 SSH 连接信息
 

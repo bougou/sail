@@ -47,7 +47,7 @@ Generally, you run `sail` on a centralized machine (deploy machine).
 The `sail` command uses three directories to do its job.
 
 ```yaml
-# cat ~/.sailrc.yml
+# cat ~/.sailrc.yaml
 products-dir: /path/to/products    # Store the operation code of product(s).
 targets-dir: /path/to/targets      # Store the environment informations.
 packages-dir: /path/to/packages    # Store package files.

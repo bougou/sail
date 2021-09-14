@@ -16,9 +16,9 @@ Suppose, your boss assigns you a task to deploy a software product called `fooba
     $ mkdir packages
 
 
-    # create a ~/.sailrc.yml to set global options, or else
+    # create a ~/.sailrc.yaml to set global options, or else
     # you have to explicitly specify these options everytime when running sail command.
-    $ vim ~/.sailrc.yml
+    $ vim ~/.sailrc.yaml
     products-dir: /path/to/home/dir/sail-examples/products
     targets-dir: /path/to/home/dir/sail-examples/targets
     packages-dir: /path/to/home/dir/sail-examples/packages

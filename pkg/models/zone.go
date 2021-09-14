@@ -59,9 +59,9 @@ func NewZone(sailOption *SailOption, targetName string, zoneName string) *Zone {
 		TargetDir: path.Join(sailOption.TargetsDir, targetName),
 		ZoneDir:   path.Join(sailOption.TargetsDir, targetName, zoneName),
 
-		HostsFile:    path.Join(sailOption.TargetsDir, targetName, zoneName, "hosts.yml"),
-		VarsFile:     path.Join(sailOption.TargetsDir, targetName, zoneName, "vars.yml"),
-		ComputedFile: path.Join(sailOption.TargetsDir, targetName, zoneName, "_computed.yml"),
+		HostsFile:    path.Join(sailOption.TargetsDir, targetName, zoneName, "hosts.yaml"),
+		VarsFile:     path.Join(sailOption.TargetsDir, targetName, zoneName, "vars.yaml"),
+		ComputedFile: path.Join(sailOption.TargetsDir, targetName, zoneName, "_computed.yaml"),
 
 		ResourcesDir: path.Join(sailOption.TargetsDir, targetName, zoneName, "resources"),
 
@@ -177,7 +177,7 @@ func (zone *Zone) ParseZoneMeta() (*ZoneMeta, error) {
 func (zone *Zone) HandleCompatibity() {
 	// Todo
 	// Domain Specific Language (Declarative)
-	// migrate.yml
+	// migrate.yaml
 }
 
 func (zone *Zone) Dump() error {
@@ -299,12 +299,12 @@ func (zone *Zone) PlaybookFile(playbookName string) string {
 		playbookName = DefaultPlaybook
 	}
 
-	if strings.HasSuffix(playbookName, ".yml") || strings.HasSuffix(playbookName, ".yaml") {
+	if strings.HasSuffix(playbookName, ".yaml") || strings.HasSuffix(playbookName, ".yaml") {
 		return path.Join(zone.Product.dir, playbookName)
 	}
 
 	var f string
-	f = path.Join(zone.Product.dir, playbookName+".yml")
+	f = path.Join(zone.Product.dir, playbookName+".yaml")
 	if _, err := os.Stat(f); !os.IsNotExist(err) {
 		return f
 	}

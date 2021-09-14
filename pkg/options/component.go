@@ -69,7 +69,7 @@ func ParseChoosedComponents(zone *models.Zone, components []string, ansible bool
 	}
 
 	for componentName, componentVersion := range m {
-		if componentVersion == "" {
+		if componentVersion != "" {
 			zone.SetComponentVersion(componentName, componentVersion)
 		}
 	}

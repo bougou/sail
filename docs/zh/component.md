@@ -1,6 +1,6 @@
 # 组件
 
-一个产品是由多个组件组成。你可以使用 `components.yml` 文件或和 `components` 目录来定义（声明）产品的组件。
+一个产品是由多个组件组成。你可以使用 `components.yaml` 文件或和 `components` 目录来定义（声明）产品的组件。
 
 ## 组件声明
 
@@ -51,18 +51,18 @@ theComponentName: {}
 
 请注意：
 
-- 在 `products/<productName>/` 的 `components.yml` 或者 `comopnents/*.yml` 文件中定义的组件，其各个字段的值可以看做是默认值。
+- 在 `products/<productName>/` 的 `components.yaml` 或者 `components/*.yaml` 文件中定义的组件，其各个字段的值可以看做是默认值。
 - 组件的各个字段的值都可以根据实际的部署环境而变化，比如组件的 `version` 变量随着对应组件的升级而相应更改。
-- `<productName>` 目录下所有的 `components.yml` 或者 `comopnents/*.yml` 会和 `vars.yml` 中的变量合并，并保存到对应的环境目录 `targets/<target>/<zone>` 的 `vars.yml` 文件中。
+- `<productName>` 目录下所有的 `components.yaml` 或者 `components/*.yaml` 会和 `vars.yaml` 中的变量合并，并保存到对应的环境目录 `targets/<target>/<zone>` 的 `vars.yaml` 文件中。
 
 ## Example
 
 假设你的产品名称叫做 `foobar`，该产品由 `foobar-web`，`foobar-api`，`foobar-backend`, `foobar-db` 和 `foobar-cache` 五个组件构成。
 
-你可以把组件都定义到 `components.yml` 文件中，如下：
+你可以把组件都定义到 `components.yaml` 文件中，如下：
 
 ```yaml
-# all components are defined in components.yml
+# all components are defined in components.yaml
 
 foobar-web:
   version: "v0.0.1"
@@ -88,13 +88,13 @@ foobar-cache:
 你也可以使用 `components` 目录甚至使用嵌套的子目录，并使用不用的文件来定义，如下：
 
 ```yml
-# components/foobar-web.yml
+# components/foobar-web.yaml
 foobar-web:
   version: "v0.0.1"
   # ... more other fields
 
 # 一个文件中也可以定义多个组件
-# components/api.yml
+# components/api.yaml
 foobar-api:
   version: "v0.0.2"
   # ... more other fields
@@ -102,19 +102,19 @@ foobar-backend:
   version: "v0.0.3"
   # ... more other fields
 
-# components/storage/db.yml
+# components/storage/db.yaml
 foobar-db:
   version: "v0.0.4"
   # ... more other fields
 
-# components/storeage/cache.yml
+# components/storeage/cache.yaml
 foobar-cache:
   version: "v0.0.5"
   # ... more other fields
 ```
 
-`components.yml` 或和 `components` 目录下的任何 `.yml` 文件（文件名没有实际的意义）都可以用来定义产品的组件。
-组件的名称是由 `.yml` 文件的「顶层字段」决定的。
+`components.yaml` 或和 `components` 目录下的任何 `.yaml` 文件（文件名没有实际的意义）都可以用来定义产品的组件。
+组件的名称是由 `.yaml` 文件的「顶层字段」决定的。
 
 ## 组件的实现
 
@@ -167,7 +167,7 @@ Ansible 和 Helm 的核心操作是根据变量去渲染出配置文件。`sail`
 
 1. 环境特有的变量信息
 
-    `targets/<target>/<zone>/vars.yml` 文件中的变量，包含所有组件变量以及非组件变量。
+    `targets/<target>/<zone>/vars.yaml` 文件中的变量，包含所有组件变量以及非组件变量。
 
 2. 几个 `sail` 相关变量
 

@@ -19,16 +19,16 @@
 
 ```bash
 ## sail 规范
-components.yml      # 组件声明
+components.yaml      # 组件声明
 components/         # 组件声明
-vars.yml            # 非组件变量，通常定义一些所有组件都通用的变量，如数据目录 data_dir，时区 timezone
+vars.yaml            # 非组件变量，通常定义一些所有组件都通用的变量，如数据目录 data_dir，时区 timezone
 # 所有的「组件变量」以及「非组件变量」最终会合并在一起，称为「环境配置」
 # 把产品部署到不同环境中时，每个环境都拥有自己独立的一份「环境配置」
 # 每个环境的「环境配置」位于环境自己的目录下面（targets/<target>/<zone>/)，可以按照环境实际情况修改
 
 ## Ansible 相关
-sail.yml            # 必须存在的一个 Ansible Playbook 文件
-<playbook>.yml      # 其它的 Playbook 文件
+sail.yaml            # 必须存在的一个 Ansible Playbook 文件
+<playbook>.yaml      # 其它的 Playbook 文件
 
 roles/              # Ansible Roles，实现各个组件的实际的、具体的安装逻辑
 

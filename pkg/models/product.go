@@ -17,7 +17,7 @@ import (
 )
 
 const DefaultPlaybook string = "sail"
-const DefaultPlaybookFile string = "sail.yml"
+const DefaultPlaybookFile string = "sail.yaml"
 
 type Product struct {
 	Name string `json:"Name,omitempty"  yaml:"Name,omitempty"`
@@ -68,11 +68,11 @@ func NewProduct(name string, baseDir string) *Product {
 		defaultPlaybook: DefaultPlaybook,
 		baseDir:         baseDir,
 		dir:             path.Join(baseDir, name),
-		varsFile:        path.Join(baseDir, name, "vars.yml"),
+		varsFile:        path.Join(baseDir, name, "vars.yaml"),
 		runFile:         path.Join(baseDir, name, DefaultPlaybookFile),
-		componentsFile:  path.Join(baseDir, name, "components.yml"),
+		componentsFile:  path.Join(baseDir, name, "components.yaml"),
 		componentsDir:   path.Join(baseDir, name, "components"),
-		migrateFile:     path.Join(baseDir, name, "migrate.yml"),
+		migrateFile:     path.Join(baseDir, name, "migrate.yaml"),
 		rolesDir:        path.Join(baseDir, name, "roles"),
 		helmChartFile:   path.Join(baseDir, name, "Chart.yaml"),
 	}
@@ -194,7 +194,7 @@ func (p *Product) ComponentListWithFitlerOptions(filterOptions ...FilterOption) 
 	return sorted
 }
 
-// GenSail generate the default sail.yml ansible playbook file
+// GenSail generate the default sail.yaml ansible playbook file
 func (p *Product) GenSail() (ansible.Playbook, error) {
 	out := ansible.Playbook(make([]ansible.Play, 0))
 
@@ -283,7 +283,7 @@ func (p *Product) loadDefaultComponents() error {
 		return errors.New(errString)
 	}
 
-	// After loading all components.yml, copy p.components to p.Components
+	// After loading all components.yaml, copy p.components to p.Components
 	var c map[string]*Component
 	if err := copier.CopyWithOption(&c, p.components, copier.Option{DeepCopy: true}); err != nil {
 		msg := fmt.Sprintf("copy default components failed, err: %s", err)
