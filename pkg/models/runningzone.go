@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 
 	newexec "github.com/bougou/gopkg/exec"
@@ -182,23 +183,46 @@ func (rz *RunningZone) RunAnsiblePlaybook(args []string) error {
 func (rz *RunningZone) RunHelm(args []string) error {
 	switch rz.zone.SailHelmMode {
 	case SailHelmModeComponent:
-		for componentName, component := range rz.zone.Product.Components {
-			if component.Form == "pod" {
-				// fmt.Printf("component: (%s) form: (%s)\n", componentName, component.Form)
-				helmRelease := fmt.Sprintf("%s-%s", rz.zone.SailProduct, componentName)
-				helmChartDir := rz.zone.HelmChartDirOfComponent(componentName)
-				k8s := rz.zone.GetK8SForComponent(componentName)
-				if err := helmCmd(helmRelease, helmChartDir, k8s); err != nil {
-					return err
-				}
+		for _, componentName := range rz.zone.Product.ComponentListWithFilterOptionsAnd(FilterOptionEnabled, FilterOptionFormPod) {
+			helmRelease := fmt.Sprintf("%s-%s", rz.zone.SailProduct, componentName)
+			helmChartDir := rz.zone.HelmDirOfComponent(componentName)
+			k8s := rz.zone.GetK8SForComponent(componentName)
+
+			valuesFiles := []string{}
+			valuesFiles = append(valuesFiles, rz.zone.VarsFile)               //  zone VarsFile always exists.
+			zoneGlobalValuesFile := path.Join(rz.zone.HelmDir, "values.yaml") // global values.yaml is OPTIONAL.
+			_, err := os.Stat(zoneGlobalValuesFile)
+			if err == nil {
+				valuesFiles = append(valuesFiles, zoneGlobalValuesFile)
+			}
+			if err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("access global values.yaml failed, err: %s", err)
+			}
+			zoneComponentValuesFile := path.Join(rz.zone.HelmDirOfComponent(componentName), "values.yaml")
+			valuesFiles = append(valuesFiles, zoneComponentValuesFile)
+
+			if err := helmCmd(helmRelease, helmChartDir, k8s, valuesFiles, args...); err != nil {
+				return fmt.Errorf("run helm for component (%s) failed, err: %s", componentName, err)
 			}
 		}
 
 	case SailHelmModeProduct:
 		helmRelease := rz.zone.SailProduct
-		helmChartDir := rz.zone.HelmChartDirOfProduct()
+		helmChartDir := rz.zone.HelmDirOfProduct()
 		k8s := rz.zone.GetK8SForProduct()
-		return helmCmd(helmRelease, helmChartDir, k8s)
+
+		valuesFiles := []string{}
+		valuesFiles = append(valuesFiles, rz.zone.VarsFile)               //  zone VarsFile always exists.
+		zoneGlobalValuesFile := path.Join(rz.zone.HelmDir, "values.yaml") // global values.yaml is OPTIONAL.
+		_, err := os.Stat(zoneGlobalValuesFile)
+		if err == nil {
+			valuesFiles = append(valuesFiles, zoneGlobalValuesFile)
+		}
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("access global values.yaml failed, err: %s", err)
+		}
+
+		return helmCmd(helmRelease, helmChartDir, k8s, valuesFiles, args...)
 
 	default:
 		return fmt.Errorf("not supported helm mode: (%s)", rz.zone.SailHelmMode)
@@ -207,8 +231,8 @@ func (rz *RunningZone) RunHelm(args []string) error {
 	return nil
 }
 
-func helmCmd(release string, chartDir string, k8s *K8S) error {
-	args := []string{
+func helmCmd(release string, chartDir string, k8s *K8S, valuesFiles []string, args ...string) error {
+	helmArgs := []string{
 		"upgrade",
 		release,
 		chartDir,
@@ -217,20 +241,25 @@ func helmCmd(release string, chartDir string, k8s *K8S) error {
 
 	if k8s != nil {
 		if k8s.KubeContext != "" {
-			args = append(args, "--kube-context", k8s.KubeContext)
+			helmArgs = append(helmArgs, "--kube-context", k8s.KubeContext)
 		}
 		if k8s.KuebConfig != "" {
-			args = append(args, "--kubeconfig", k8s.KuebConfig)
+			helmArgs = append(helmArgs, "--kubeconfig", k8s.KuebConfig)
 		}
 		if k8s.Namespace != "" {
-			args = append(args, "--namespace", k8s.Namespace)
+			helmArgs = append(helmArgs, "--namespace", k8s.Namespace)
 		}
 	}
-	args = append(args, "--debug")
+
+	for _, valuesFile := range valuesFiles {
+		helmArgs = append(helmArgs, "--values", valuesFile)
+	}
+
+	helmArgs = append(helmArgs, args...)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "helm", args...)
+	cmd := exec.CommandContext(ctx, "helm", helmArgs...)
 
 	logFileName := "/tmp/sail.log"
 	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)

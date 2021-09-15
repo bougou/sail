@@ -44,7 +44,6 @@ type Product struct {
 	migrateFile    string
 	orderFile      string
 	rolesDir       string
-	helmChartFile  string
 
 	defaultPlaybook string
 }
@@ -80,7 +79,6 @@ func NewProduct(name string, baseDir string) *Product {
 		migrateFile:     path.Join(baseDir, name, "migrate.yaml"),
 		orderFile:       path.Join(baseDir, name, "order.yaml"),
 		rolesDir:        path.Join(baseDir, name, "roles"),
-		helmChartFile:   path.Join(baseDir, name, "Chart.yaml"),
 	}
 
 	return p
@@ -189,7 +187,7 @@ func NewFilterOptionByComponentsMap(m map[string]string) FilterOption {
 	}
 }
 
-func (p *Product) ComponentListWithFitlerOptions(filterOptions ...FilterOption) []string {
+func (p *Product) ComponentListWithFitlerOptionsOr(filterOptions ...FilterOption) []string {
 	out := []string{}
 	for componentName, component := range p.Components {
 		for _, filterOption := range filterOptions {
@@ -197,6 +195,27 @@ func (p *Product) ComponentListWithFitlerOptions(filterOptions ...FilterOption) 
 				out = append(out, componentName)
 				break
 			}
+		}
+	}
+
+	sorted := sort.StringSlice(out)
+	sort.Sort(sorted)
+	return sorted
+}
+
+func (p *Product) ComponentListWithFilterOptionsAnd(filterOptions ...FilterOption) []string {
+	out := []string{}
+	for componentName, component := range p.Components {
+		pass := false
+		for _, filterOption := range filterOptions {
+			if !filterOption(component) {
+				pass = true
+				break
+			}
+		}
+
+		if !pass {
+			out = append(out, componentName)
 		}
 	}
 

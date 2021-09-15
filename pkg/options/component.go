@@ -75,7 +75,7 @@ func ParseChoosedComponents(zone *models.Zone, components []string, ansible bool
 	}
 
 	if ansible {
-		serverComponents := zone.Product.ComponentListWithFitlerOptions(models.FilterOptionFormServer)
+		serverComponents := zone.Product.ComponentListWithFitlerOptionsOr(models.FilterOptionFormServer)
 		for _, serverComponent := range serverComponents {
 			if _, exists := m[serverComponent]; !exists {
 				m[serverComponent] = ""
@@ -83,7 +83,7 @@ func ParseChoosedComponents(zone *models.Zone, components []string, ansible bool
 		}
 	}
 	if helm {
-		podComponents := zone.Product.ComponentListWithFitlerOptions(models.FilterOptionFormPod)
+		podComponents := zone.Product.ComponentListWithFitlerOptionsOr(models.FilterOptionFormPod)
 		for _, podComponent := range podComponents {
 			if _, exists := m[podComponent]; !exists {
 				m[podComponent] = ""

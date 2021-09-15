@@ -1,26 +1,39 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/bougou/gopkg/common"
 	"github.com/bougou/gopkg/copy"
+	"github.com/bougou/gopkg/merge"
+	"gopkg.in/yaml.v3"
 )
 
-func (zone *Zone) HelmChartDirOfProduct() string {
+// HelmDirOfProduct returns the helm chart directory for the product of the zone.
+// It is used when the '_sail_helm_mode' is 'product'.
+func (zone *Zone) HelmDirOfProduct() string {
 	return path.Join(zone.HelmDir, zone.SailProduct)
 }
 
-func (zone *Zone) HelmChartDirOfComponent(componentName string) string {
+// HelmDirOfComponent returns the helm chart directory for specified component.
+// It is used when the '_sail_helm_mode' is 'component'.
+func (zone *Zone) HelmDirOfComponent(componentName string) string {
 	return path.Join(zone.HelmDir, componentName)
 }
 
+// PrepareHelm prepares helm chart(s) for zone.
 func (zone *Zone) PrepareHelm() error {
+	podComponentsEnabled := zone.Product.ComponentListWithFilterOptionsAnd(FilterOptionEnabled, FilterOptionFormPod)
+	if len(podComponentsEnabled) == 0 {
+		return nil
+	}
+
 	switch zone.SailHelmMode {
 	case "component":
 		return zone.PrepareHelmCharts()
@@ -31,44 +44,98 @@ func (zone *Zone) PrepareHelm() error {
 	}
 }
 
-// PrepareHelmCharts prepares helm chart for each components of the product.
+// PrepareHelmCharts prepares helm charts for each component of the product.
 // Each component has its own helm chart.
+// <target>/<zone>/helm/<componetName>/{Chart.yaml,templates,values.yaml,...}
 func (zone *Zone) PrepareHelmCharts() error {
-	// <target>/<zone>/.helm/<componetName>/{Chart.yaml,templates,values.yaml}
-	if err := os.RemoveAll(zone.HelmDir); err != nil {
-		msg := fmt.Sprintf("clear helm dir failed, err: %s", err)
-		return errors.New(msg)
-	}
-
 	if err := os.MkdirAll(zone.HelmDir, os.ModePerm); err != nil {
-		msg := fmt.Sprintf("create helm dir failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("create helm dir failed, err: %s", err)
 	}
 
-	for _, componentName := range zone.Product.ComponentList() {
-		component := zone.Product.Components[componentName]
-		if component.Form == ComponentFormPod {
-			roleName := component.GetRoleName()
-
-			if err := zone.prepareComponentChart(componentName, roleName); err != nil {
-				return fmt.Errorf("prepare chart for component (%s) / role (%s) failed, err: %s", componentName, roleName, err)
-			}
+	// prepare the global values.yaml even when sail_helm_mode is set to "component".
+	// the global values.yaml for zone is put under `zone.HelmDir`
+	productValuesFile := path.Join(zone.Product.dir, "values.yaml")
+	zoneValuesFile := path.Join(zone.HelmDir, "values.yaml")
+	if _, err := os.Stat(productValuesFile); err == nil {
+		if err := mergeYamlFiles(zoneValuesFile, productValuesFile); err != nil {
+			return fmt.Errorf("prepare global values.yaml failed, err: %s", err)
 		}
 	}
+
+	for _, componentName := range zone.Product.ComponentListWithFilterOptionsAnd(FilterOptionFormPod, FilterOptionEnabled) {
+		if err := zone.prepareComponentChart(componentName); err != nil {
+			return fmt.Errorf("prepare chart for component (%s) failed, err: %s", componentName, err)
+		}
+	}
+
 	return nil
 }
 
-func (zone *Zone) prepareComponentChart(componentName string, roleName string) error {
-	roleDir := path.Join(zone.Product.rolesDir, roleName)
-	helmChartDir := path.Join(roleDir, "helm", componentName)
+// prepareComponentChart copy chart dir of the component into zone's helm dir,
+// and changes values.yaml file.
+func (zone *Zone) prepareComponentChart(componentName string) error {
+	component, ok := zone.Product.Components[componentName]
+	if !ok {
+		return fmt.Errorf("not found component (%s) in product", componentName)
+	}
+	roleName := component.GetRoleName()
 
-	_, err := os.Stat(helmChartDir)
-	if err != nil && os.IsNotExist(err) {
-		return nil
+	roleDir := path.Join(zone.Product.rolesDir, roleName)
+	roleChartDir := path.Join(roleDir, "helm", componentName)
+	zoneComponentChartDir := zone.HelmDirOfComponent(componentName)
+
+	if _, err := os.Stat(roleChartDir); err != nil {
+		return fmt.Errorf("access chart dir (%s) for component (%s) failed, err: %s", roleChartDir, componentName, err)
 	}
 
-	if err := copy.CopyDir(helmChartDir, zone.HelmDir); err != nil {
-		return fmt.Errorf("copy chart dir failed, err: %s", err)
+	// Copy component templates dir from role dir if exists.
+	roleChartTemplatesDir := path.Join(roleChartDir, "templates")
+	zoneComponentChartTemplatesDir := path.Join(zoneComponentChartDir, "templates")
+	if _, err := os.Stat(roleChartTemplatesDir); err == nil {
+		if err := copy.CopyDir(roleChartTemplatesDir+"/", zoneComponentChartTemplatesDir); err != nil {
+			return fmt.Errorf("copy templates dir failed, err: %s", err)
+		}
+	}
+
+	// Copy component crds dir from role dir if exists..
+	roleChartCRDsDir := path.Join(roleChartDir, "crds")
+	zoneComponentChartCRDsDir := path.Join(zoneComponentChartDir, "crds")
+	if _, err := os.Stat(roleChartCRDsDir); err == nil {
+		if err := copy.CopyDir(roleChartCRDsDir+"/", zoneComponentChartCRDsDir); err != nil {
+			return fmt.Errorf("copy crds dir failed, err: %s", err)
+		}
+	}
+
+	// Copy component charts dir from role dir if exists.
+	roleChartChartsDir := path.Join(roleChartDir, "charts")
+	zoneComponentChartChartsDir := path.Join(zoneComponentChartDir, "charts")
+	if _, err := os.Stat(roleChartChartsDir); err == nil {
+		if err := copy.CopyDir(roleChartChartsDir+"/", zoneComponentChartChartsDir); err != nil {
+			return fmt.Errorf("copy charts dir failed, err: %s", err)
+		}
+	}
+
+	// Copy or Merge values.yaml. The values.yaml file under the role dir MUST be exists.
+	roleChartValuesFile := path.Join(roleChartDir, "values.yaml")
+	zoneComponentValuesFile := path.Join(zoneComponentChartDir, "values.yaml")
+	if _, err := os.Stat(roleChartValuesFile); err != nil {
+		return fmt.Errorf("read helm chart values.yaml file (%s) failed, err: %s", roleChartValuesFile, err)
+	}
+	if err := mergeYamlFiles(zoneComponentValuesFile, roleChartValuesFile); err != nil {
+		return fmt.Errorf("merge values.yaml for component failed, err: %s", err)
+	}
+
+	// Copy Charts.yaml
+	roleChartChartFile := path.Join(roleChartDir, "Chart.yaml")
+	zoneComponentChartFile := path.Join(zoneComponentChartDir, "Chart.yaml")
+	if err := copy.CopyFile(roleChartChartFile, zoneComponentChartFile); err != nil {
+		return fmt.Errorf("copy Chart.yaml failed, err: %s", err)
+	}
+
+	// symlink resources dir
+	chartResourcesDir := path.Join(zoneComponentChartDir, "resources")
+	if err := creatSymlink(zone.ResourcesDir, chartResourcesDir); err != nil {
+		return fmt.Errorf("create resources symlink failed, err: %s", err)
 	}
 
 	return nil
@@ -76,103 +143,219 @@ func (zone *Zone) prepareComponentChart(componentName string, roleName string) e
 
 // PrepareHelmChart prepares helm chart for the product.
 // There will be only one chart for the product.
+// <target>/<zone>/helm/<productName>/{Chart.yaml,templates,values.yaml,...}
 func (zone *Zone) PrepareHelmChart() error {
-	if err := os.RemoveAll(zone.HelmDir); err != nil {
-		msg := fmt.Sprintf("clear helm dir failed, err: %s", err)
-		return errors.New(msg)
+	if err := os.MkdirAll(zone.HelmDirOfProduct(), os.ModePerm); err != nil {
+		return fmt.Errorf("create helm chart dir for product failed, err: %s", err)
 	}
 
-	if err := os.MkdirAll(path.Join(zone.HelmChartDirOfProduct(), "templates"), os.ModePerm); err != nil {
-		msg := fmt.Sprintf("create helm chart templates dir failed, err: %s", err)
-		return errors.New(msg)
+	if err := zone.prepareProductChartTemplates(); err != nil {
+		return fmt.Errorf("prepare chart templates for product failed, err: %s", err)
 	}
 
-	if err := os.MkdirAll(path.Join(zone.HelmChartDirOfProduct(), "crds"), os.ModePerm); err != nil {
-		msg := fmt.Sprintf("create helm chart crds dir failed, err: %s", err)
-		return errors.New(msg)
+	if err := zone.prepareProductChartCRDs(); err != nil {
+		return fmt.Errorf("prepare chart CRDs for product failed, err: %s", err)
 	}
 
-	if err := os.Symlink(zone.ResourcesDir, path.Join(zone.HelmChartDirOfProduct(), "resources")); err != nil {
-		msg := fmt.Sprintf("create resources symlink failed, err: %s", err)
-		return errors.New(msg)
+	productChartFile := path.Join(zone.Product.dir, "Chart.yaml")
+	zoneProductChartFile := path.Join(zone.HelmDirOfProduct(), "Chart.yaml")
+	if err := copy.CopyFile(productChartFile, zoneProductChartFile); err != nil {
+		return fmt.Errorf("copy Chart.yaml failed, err: %s", err)
 	}
 
-	if err := os.Symlink(zone.VarsFile, path.Join(zone.HelmChartDirOfProduct(), "values.yaml")); err != nil {
-		msg := fmt.Sprintf("create values.yaml symlink failed, err: %s", err)
-		return errors.New(msg)
-	}
-
-	if _, err := os.Stat(zone.Product.helmChartFile); err == nil {
-		if err := copy.CopyFile(zone.Product.helmChartFile, path.Join(zone.HelmChartDirOfProduct(), "Chart.yaml")); err != nil {
-			msg := fmt.Sprintf("copy Chart.yaml failed, err: %s", err)
-			return errors.New(msg)
+	// prepare the global values.yaml file IF EXISTS.
+	// the global values.yaml for zone is put under `zone.HelmDir`.
+	// the global values.yaml is OPTIONAL.
+	productChartValuesFile := path.Join(zone.Product.dir, "values.yaml")
+	zoneProductChartValuesFile := path.Join(zone.HelmDir, "values.yaml")
+	if _, err := os.Stat(productChartValuesFile); err == nil {
+		if err := mergeYamlFiles(zoneProductChartValuesFile, productChartValuesFile); err != nil {
+			return fmt.Errorf("prepare global values.yaml failed, err: %s", err)
 		}
 	}
 
-	for _, componentName := range zone.Product.ComponentList() {
+	// symlink resources dir
+	chartResourcesDir := path.Join(zone.HelmDirOfProduct(), "resources")
+	if err := creatSymlink(zone.ResourcesDir, chartResourcesDir); err != nil {
+		return fmt.Errorf("create resources symlink failed, err: %s", err)
+	}
+
+	return nil
+}
+
+// prepareProductChartTemplates prepares chart templates dir for the product in the zone.
+//
+//   * copy global templates if exists:
+//        src: products/<productDir>/templates/filename
+//        dst: <target>/<zone>/helm/<productName>/templates/filename
+//   * copy component level templates if exists:
+//     only the components with `enabled` set to `true` and `form` set to `pod` are considered.
+//        src: products/<productDir>/roles/<roleName>/templates/filename
+//        dst: <target>/<zone>/helm/<productName>/templates/<componentName>-filename
+//
+// The component level template dst file may overrite the global template dst file.
+func (zone *Zone) prepareProductChartTemplates() error {
+	productChartTemplatesDir := path.Join(zone.Product.dir, "templates")
+	zoneChartTemplatesDir := path.Join(zone.HelmDirOfProduct(), "templates")
+
+	if err := os.MkdirAll(zoneChartTemplatesDir, os.ModePerm); err != nil {
+		return fmt.Errorf("create helm chart templates dir for product failed, err: %s", err)
+	}
+
+	if stat, err := os.Stat(productChartTemplatesDir); err == nil && stat.IsDir() {
+		if err := copy.CopyDir(productChartTemplatesDir+"/", zoneChartTemplatesDir); err != nil {
+			return fmt.Errorf("copy templates dir failed, err: %s", err)
+		}
+	}
+
+	for _, componentName := range zone.Product.ComponentListWithFilterOptionsAnd(FilterOptionFormPod, FilterOptionEnabled) {
 		component := zone.Product.Components[componentName]
-		if component.Form == ComponentFormPod {
-			roleName := component.GetRoleName()
-			zone.prepareHelmTemplates(componentName, roleName)
-			zone.prepareHelmCRDs(componentName, roleName)
-		}
-	}
-	return nil
-}
 
-func (zone *Zone) prepareHelmTemplates(componetName string, roleName string) error {
-	roleDir := path.Join(zone.Product.rolesDir, roleName)
-	roleHelmTemplatesDir := path.Join(roleDir, "helm", "templates")
+		roleName := component.GetRoleName()
+		roleDir := path.Join(zone.Product.rolesDir, roleName)
+		roleHelmTemplatesDir := path.Join(roleDir, "helm", "templates")
 
-	helmTemplates := []string{}
-	filepath.WalkDir(roleHelmTemplatesDir, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
+		filepath.WalkDir(roleHelmTemplatesDir, func(filepath string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
+				return nil
+			}
+
+			fileBasename := path.Base(filepath)
+			newFileBasename := fmt.Sprintf("%s-%s", componentName, fileBasename)
+			dstFile := path.Join(zoneChartTemplatesDir, newFileBasename)
+			if err := copy.CopyFile(filepath, dstFile); err != nil {
+				return fmt.Errorf("copy file failed, err: %s", err)
+			}
 			return nil
-		}
-		helmTemplates = append(helmTemplates, path)
-		return nil
-	})
+		})
 
-	for _, helmTemplate := range helmTemplates {
-		fileBasename := path.Base(helmTemplate)
-		newFileBasename := fmt.Sprintf("%s-%s", componetName, fileBasename)
-		dstFile := path.Join(zone.HelmChartDirOfProduct(), "templates", newFileBasename)
-		if err := copy.CopyFile(helmTemplate, dstFile); err != nil {
-			msg := fmt.Sprintf("copy file failed, err: %s", err)
-			return errors.New(msg)
-		}
 	}
 
 	return nil
 }
 
-func (zone *Zone) prepareHelmCRDs(componetName string, roleName string) error {
-	roleDir := path.Join(zone.Product.rolesDir, roleName)
-	roleHelmCRDsDir := path.Join(roleDir, "helm", "crds")
+// prepareProductChartCRDs prepares chart crds dir for the product in the zone.
+//
+//   * copy global crds if exists:
+//        src: products/<productDir>/crds/filename
+//        dst: <target>/<zone>/helm/<productName>/crds/filename
+//   * copy component level crds if exists:
+//     only the components with `enabled` set to `true` and `form` set to `pod` are considered.
+//        src: products/<productDir>/roles/<roleName>/crds/filename
+//        dst: <target>/<zone>/helm/<productName>/crds/<componentName>-filename
+//
+// The component level CRD dst file may overrite the global CRD dst file.
+func (zone *Zone) prepareProductChartCRDs() error {
+	productChartCRDsDir := path.Join(zone.Product.dir, "crds")
+	zoneChartCRDsDir := path.Join(zone.HelmDirOfProduct(), "crds")
 
-	helmCRDs := []string{}
-	filepath.WalkDir(roleHelmCRDsDir, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
+	if err := os.MkdirAll(zoneChartCRDsDir, os.ModePerm); err != nil {
+		return fmt.Errorf("create helm chart crds dir for product failed, err: %s", err)
+	}
+
+	if stat, err := os.Stat(productChartCRDsDir); err == nil && stat.IsDir() {
+		if err := copy.CopyDir(productChartCRDsDir+"/", zoneChartCRDsDir); err != nil {
+			return fmt.Errorf("copy crds dir failed, err: %s", err)
+		}
+	}
+
+	for _, componentName := range zone.Product.ComponentListWithFitlerOptionsOr(FilterOptionFormPod) {
+		component := zone.Product.Components[componentName]
+
+		roleName := component.GetRoleName()
+		roleDir := path.Join(zone.Product.rolesDir, roleName)
+		roleHelmCRDsDir := path.Join(roleDir, "helm", "crds")
+
+		filepath.WalkDir(roleHelmCRDsDir, func(filepath string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
+				return nil
+			}
+
+			fileBasename := path.Base(filepath)
+			newFileBasename := fmt.Sprintf("%s-%s", componentName, fileBasename)
+			dstFile := path.Join(zoneChartCRDsDir, newFileBasename)
+			if err := copy.CopyFile(filepath, dstFile); err != nil {
+				return fmt.Errorf("copy file failed, err: %s", err)
+			}
+			return nil
+		})
+	}
+
+	return nil
+}
+
+// creatSymlink creates newname as a symbolic link to oldname.
+// It unlinks the newname if newname already is a symbolic link, then calls os.Symlink to create the link.
+func creatSymlink(oldname string, newname string) error {
+	if _, err := os.Lstat(newname); err == nil {
+		if err := os.Remove(newname); err != nil {
 			return err
 		}
-		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
-			return nil
-		}
-		helmCRDs = append(helmCRDs, path)
-		return nil
-	})
+	}
+	if err := os.Symlink(oldname, newname); err != nil {
+		return err
+	}
+	return nil
+}
 
-	for _, helmCRD := range helmCRDs {
-		fileBasename := path.Base(helmCRD)
-		newFileBasename := fmt.Sprintf("%s-%s", componetName, fileBasename)
-		dstFile := path.Join(zone.HelmChartDirOfProduct(), "crds", newFileBasename)
-		if err := copy.CopyFile(helmCRD, dstFile); err != nil {
-			msg := fmt.Sprintf("copy file failed, err: %s", err)
-			return errors.New(msg)
+// loadMapFromYamlFile returns a map for the content of the yaml file.
+func loadMapFromYamlFile(filename string) (map[string]interface{}, error) {
+	out := make(map[string]interface{})
+
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("read file (%s) failed, err: %s", filename, err)
+	}
+
+	if err := yaml.Unmarshal(b, &out); err != nil {
+		return nil, fmt.Errorf("yaml unmarshal failed, err: %s", err)
+	}
+
+	return out, nil
+}
+
+// mergeYamlFiles merges data in srcFiles to dstFile and save it.
+// The dstFile will be auto created if not exists.
+// The dstFile MUST be valid yaml files if exists.
+// The passed srcFiles MUST be valid yaml files.
+func mergeYamlFiles(dstFile string, srcFiles ...string) error {
+	if len(srcFiles) == 0 {
+		return nil
+	}
+
+	dst := make(map[string]interface{})
+	if _, err := os.Stat(dstFile); err == nil {
+		m, err := loadMapFromYamlFile(dstFile)
+		if err != nil {
+			return fmt.Errorf("load dst yaml file (%s) failed, err: %s", dstFile, err)
 		}
+		dst = m
+	}
+
+	dstM := merge.NewMap(dst)
+	for _, srcFile := range srcFiles {
+		m, err := loadMapFromYamlFile(srcFile)
+		if err != nil {
+			return fmt.Errorf("load src yaml file (%s) failed, err: %s", srcFile, err)
+		}
+		if err := dstM.Merge(m); err != nil {
+			return fmt.Errorf("merge src yaml file (%s) failed, err: %s", srcFile, err)
+		}
+	}
+
+	b, err := common.Encode("yaml", dstM.Value())
+	if err != nil {
+		return fmt.Errorf("encode failed, err: %s", err)
+	}
+
+	if err := os.WriteFile(dstFile, b, 0644); err != nil {
+		return fmt.Errorf("update dst file failed, err: %s", err)
 	}
 
 	return nil

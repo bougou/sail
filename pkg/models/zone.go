@@ -65,7 +65,7 @@ func NewZone(sailOption *SailOption, targetName string, zoneName string) *Zone {
 
 		ResourcesDir: path.Join(sailOption.TargetsDir, targetName, zoneName, "resources"),
 
-		HelmDir: path.Join(sailOption.TargetsDir, targetName, zoneName, ".helm"),
+		HelmDir: path.Join(sailOption.TargetsDir, targetName, zoneName, "helm"),
 
 		CMDB:     NewCMDB(),
 		Computed: make(map[string]interface{}),
@@ -194,7 +194,6 @@ func (zone *Zone) Dump() error {
 	zone.RenderVars()
 	zone.RenderHosts()
 	zone.RenderComputed()
-
 	return nil
 }
 
