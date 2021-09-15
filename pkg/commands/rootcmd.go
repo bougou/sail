@@ -35,7 +35,7 @@ func NewSailCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "sail",
 		Short: "sail",
-		Long:  "sail long",
+		Long:  "sail\n\nFind more information at: https://github.com/bougou/sail\n\n",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return initConfig(cmd)
 		},
