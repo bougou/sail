@@ -42,3 +42,4 @@
 
 - [如何开发产品运维代码](./zh/product.md)
 - [如何开发组件](./zh/component.md)
+- [如何维护环境的 CMDB](./zh/cmdb.md)
