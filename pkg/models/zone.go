@@ -31,20 +31,22 @@ type ZoneMeta struct {
 type Zone struct {
 	*ZoneMeta
 
-	TargetName   string
-	ZoneName     string
-	TargetDir    string
-	ZoneDir      string
-	VarsFile     string
-	HostsFile    string
-	ComputedFile string
+	TargetName    string
+	ZoneName      string
+	TargetDir     string
+	ZoneDir       string
+	VarsFile      string
+	HostsFile     string
+	PlatformsFile string
+	ComputedFile  string
+
 	ResourcesDir string
 
 	HelmDir string
 
-	Product  *Product
-	CMDB     *CMDB
-	Computed map[string]interface{}
+	Product    *Product
+	CMDB       *CMDB
+	TargetVars map[string]interface{}
 
 	ansibleCfgFile string
 
@@ -59,16 +61,17 @@ func NewZone(sailOption *SailOption, targetName string, zoneName string) *Zone {
 		TargetDir: path.Join(sailOption.TargetsDir, targetName),
 		ZoneDir:   path.Join(sailOption.TargetsDir, targetName, zoneName),
 
-		HostsFile:    path.Join(sailOption.TargetsDir, targetName, zoneName, "hosts.yaml"),
-		VarsFile:     path.Join(sailOption.TargetsDir, targetName, zoneName, "vars.yaml"),
-		ComputedFile: path.Join(sailOption.TargetsDir, targetName, zoneName, "_computed.yaml"),
+		VarsFile:      path.Join(sailOption.TargetsDir, targetName, zoneName, "vars.yaml"),
+		HostsFile:     path.Join(sailOption.TargetsDir, targetName, zoneName, "hosts.yaml"),
+		PlatformsFile: path.Join(sailOption.TargetsDir, targetName, zoneName, "platforms.yaml"),
+		ComputedFile:  path.Join(sailOption.TargetsDir, targetName, zoneName, "_computed.yaml"),
 
 		ResourcesDir: path.Join(sailOption.TargetsDir, targetName, zoneName, "resources"),
 
 		HelmDir: path.Join(sailOption.TargetsDir, targetName, zoneName, "helm"),
 
-		CMDB:     NewCMDB(),
-		Computed: make(map[string]interface{}),
+		CMDB:       NewCMDB(),
+		TargetVars: make(map[string]interface{}),
 
 		ansibleCfgFile: path.Join(sailOption.ProductsDir, "ansible.cfg"),
 
@@ -88,8 +91,7 @@ func (zone *Zone) LoadNew() error {
 	}
 	product := NewProduct(zone.SailProduct, zone.sailOption.ProductsDir)
 	if err := product.Init(); err != nil {
-		msg := fmt.Sprintf("init product failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("init product failed, err: %s", err)
 	}
 
 	zone.Product = product
@@ -116,25 +118,25 @@ func (zone *Zone) Load() error {
 
 	product := NewProduct(zone.SailProduct, zone.sailOption.ProductsDir)
 	if err := product.Init(); err != nil {
-		msg := fmt.Sprintf("init product failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("init product failed, err: %s", err)
 	}
 
 	if err := zone.LoadHosts(); err != nil {
-		msg := fmt.Sprintf("load hosts failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("load hosts failed, err: %s", err)
+	}
+
+	if err := zone.LoadPlatforms(); err != nil {
+		return fmt.Errorf("load platforms failed, err: %s", err)
 	}
 
 	if err := product.LoadZone(zone.VarsFile); err != nil {
-		msg := fmt.Sprintf("load zone vars failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("load zone vars failed, err: %s", err)
 	}
 
 	zone.Product = product
 
 	if err := zone.PrepareHelm(); err != nil {
-		msg := fmt.Sprintf("prepare helm failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("prepare helm failed, err: %s", err)
 	}
 
 	return nil
@@ -142,33 +144,41 @@ func (zone *Zone) Load() error {
 
 func (zone *Zone) Compute() error {
 	if err := zone.CMDB.Compute(zone.Product.Components); err != nil {
-		msg := fmt.Sprintf("compute zone CMDB failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("compute zone CMDB failed, err: %s", err)
 	}
 
 	if err := zone.Product.Compute(zone.CMDB); err != nil {
-		msg := fmt.Sprintf("compute zone product failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("compute zone product failed, err: %s", err)
 	}
+
+	return nil
+}
+
+func (zone *Zone) LoadTarget() error {
+	targetName := zone.TargetName
+	target := NewTarget(zone.sailOption, targetName)
+	if err := target.LoadAllZones(); err != nil {
+		return fmt.Errorf("load all zones for target (%s) failed, err: %s", targetName, err)
+	}
+
+	zone.TargetVars = target.vars
+
 	return nil
 }
 
 func (zone *Zone) ParseZoneMeta() (*ZoneMeta, error) {
 	b, err := os.ReadFile(zone.VarsFile)
 	if err != nil {
-		msg := fmt.Sprintf("read zone vars file failed, err: %s", err)
-		return nil, errors.New(msg)
+		return nil, fmt.Errorf("read zone vars file failed, err: %s", err)
 	}
 
 	m := &ZoneMeta{}
 	if err := yaml.Unmarshal(b, &m); err != nil {
-		msg := fmt.Sprintf("yaml unmarshal failed, err: %s", err)
-		return nil, errors.New(msg)
+		return nil, fmt.Errorf("yaml unmarshal failed, err: %s", err)
 	}
 
 	if m.SailProduct == "" {
-		msg := fmt.Sprintf("not found (%s) variable in %s, you have to fix that before continue", SailMetaVarProduct, zone.VarsFile)
-		return nil, errors.New(msg)
+		return nil, fmt.Errorf("not found (%s) variable in %s, you have to fix that before continue", SailMetaVarProduct, zone.VarsFile)
 	}
 
 	return m, nil
@@ -182,22 +192,38 @@ func (zone *Zone) HandleCompatibity() {
 
 func (zone *Zone) Dump() error {
 	if err := zone.Compute(); err != nil {
-		msg := fmt.Sprintf("zone.Compute failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("zone compute failed, err: %s", err)
+	}
+
+	if err := zone.LoadTarget(); err != nil {
+		return fmt.Errorf("load target failed, err: %s", err)
 	}
 
 	if err := os.MkdirAll(zone.ZoneDir, os.ModePerm); err != nil {
-		msg := fmt.Sprintf("make zone dir failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("make zone dir failed, err: %s", err)
 	}
 
-	zone.RenderVars()
-	zone.RenderHosts()
-	zone.RenderComputed()
+	errs := []string{}
+	if err := zone.RenderVars(); err != nil {
+		errs = append(errs, err.Error())
+	}
+	if err := zone.RenderHosts(); err != nil {
+		errs = append(errs, err.Error())
+	}
+	if err := zone.RenderPlatforms(); err != nil {
+		errs = append(errs, err.Error())
+	}
+	if err := zone.RenderComputed(); err != nil {
+		errs = append(errs, err.Error())
+	}
+
+	if len(errs) != 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "\n"))
+	}
 	return nil
 }
 
-func (zone *Zone) RenderVars() {
+func (zone *Zone) RenderVars() error {
 	m := make(map[string]interface{})
 
 	for k, v := range zone.Product.Vars {
@@ -210,41 +236,64 @@ func (zone *Zone) RenderVars() {
 
 	b, err := common.Encode("yaml", m)
 	if err != nil {
-		fmt.Println("encode vars failed", err)
+		return fmt.Errorf("encode vars failed, err: %s", err)
 	}
 
 	if err := os.WriteFile(zone.VarsFile, b, 0644); err != nil {
-		fmt.Println("write vars file failed", err)
+		return fmt.Errorf("write vars file failed, err: %s", err)
 	}
+
+	return nil
 }
 
-func (zone *Zone) RenderHosts() {
+func (zone *Zone) RenderHosts() error {
 	b, err := common.Encode("yaml", zone.CMDB.Inventory)
 	if err != nil {
-		fmt.Println("encode vars failed", err)
+		return fmt.Errorf("encode cmdb inventory failed, err: %s", err)
 	}
 
 	if err := os.WriteFile(zone.HostsFile, b, 0644); err != nil {
-		fmt.Println("write hosts file failed", err)
+		return fmt.Errorf("write hosts file failed, err: %s", err)
 	}
+
+	return nil
 }
 
-func (zone *Zone) RenderComputed() {
-	b, err := common.Encode("yaml", zone.Computed)
+func (zone *Zone) RenderPlatforms() error {
+	b, err := common.Encode("yaml", zone.CMDB.Platforms)
 	if err != nil {
-		fmt.Println("encode vars failed", err)
+		return fmt.Errorf("encode cmdb platforms failed, err: %s", err)
+	}
+
+	if err := os.WriteFile(zone.PlatformsFile, b, 0644); err != nil {
+		return fmt.Errorf("write platforms file failed, err: %s", err)
+	}
+
+	return nil
+}
+
+func (zone *Zone) RenderComputed() error {
+	m := make(map[string]interface{})
+	m["inventory"] = zone.CMDB.Inventory
+	m["platforms"] = zone.CMDB.Platforms
+	m["targetvars"] = zone.TargetVars
+
+	b, err := common.Encode("yaml", m)
+	if err != nil {
+		return fmt.Errorf("encode vars failed, err: %s", err)
 	}
 
 	if err := os.WriteFile(zone.ComputedFile, b, 0644); err != nil {
-		fmt.Println("write hosts file failed", err)
+		return fmt.Errorf("write computed file failed, err: %s", err)
 	}
+
+	return nil
 }
 
 func (zone *Zone) PatchActionHostsMap(m map[string][]ActionHosts) error {
 	for groupName, ahs := range m {
 		if !zone.Product.HasComponent(groupName) && groupName != "_cluster" {
-			msg := fmt.Sprintf("not supported component in this product, supported components: %s", zone.Product.ComponentList())
-			return errors.New(msg)
+			return fmt.Errorf("not supported component in this product, supported components: %s", zone.Product.ComponentList())
 		}
 
 		for _, ah := range ahs {
@@ -312,8 +361,7 @@ func (zone *Zone) PlaybookFile(playbookName string) string {
 
 func (zone *Zone) SetComponentVersion(componentName string, componentVersion string) error {
 	if !zone.Product.HasComponent(componentName) {
-		msg := fmt.Sprintf("zone does not have component: (%s)", componentName)
-		return errors.New(msg)
+		return fmt.Errorf("zone does not have component: (%s)", componentName)
 	}
 	zone.Product.Components[componentName].Version = componentVersion
 	return nil
@@ -322,17 +370,30 @@ func (zone *Zone) SetComponentVersion(componentName string, componentVersion str
 func (zone *Zone) LoadHosts() error {
 	b, err := os.ReadFile(zone.HostsFile)
 	if err != nil {
-		msg := fmt.Sprintf("read file (%s) failed, err: %s", zone.HostsFile, err)
-		return errors.New(msg)
+		return fmt.Errorf("read file (%s) failed, err: %s", zone.HostsFile, err)
 	}
 
 	i := ansible.NewAnsibleInventory()
 	if err := yaml.Unmarshal(b, i); err != nil {
-		msg := fmt.Sprintf("unmarshal hosts failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("unmarshal hosts failed, err: %s", err)
 	}
 
 	zone.CMDB.Inventory = i
+	return nil
+}
+
+func (zone *Zone) LoadPlatforms() error {
+	b, err := os.ReadFile(zone.PlatformsFile)
+	if err != nil {
+		return fmt.Errorf("read file (%s) failed, err: %s", zone.HostsFile, err)
+	}
+
+	i := map[string]Platform{}
+	if err := yaml.Unmarshal(b, &i); err != nil {
+		return fmt.Errorf("unmarshal platforms failed, err: %s", err)
+	}
+
+	zone.CMDB.Platforms = i
 	return nil
 }
 

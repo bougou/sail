@@ -8,7 +8,7 @@ type CMDB struct {
 }
 
 type Platform struct {
-	K8S *K8S `yaml:"k8s"`
+	K8S *K8S `yaml:"k8s,omitempty"`
 }
 
 type K8S struct {

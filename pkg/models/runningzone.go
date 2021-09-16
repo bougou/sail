@@ -189,8 +189,10 @@ func (rz *RunningZone) RunHelm(args []string) error {
 			k8s := rz.zone.GetK8SForComponent(componentName)
 
 			valuesFiles := []string{}
-			valuesFiles = append(valuesFiles, rz.zone.VarsFile)               //  zone VarsFile always exists.
-			zoneGlobalValuesFile := path.Join(rz.zone.HelmDir, "values.yaml") // global values.yaml is OPTIONAL.
+			valuesFiles = append(valuesFiles, rz.zone.VarsFile)     // zone VarsFile always exists.
+			valuesFiles = append(valuesFiles, rz.zone.ComputedFile) // zone ComputedFile always exists.
+
+			zoneGlobalValuesFile := path.Join(rz.zone.HelmDir, "values.yaml") // global helm values.yaml is OPTIONAL.
 			_, err := os.Stat(zoneGlobalValuesFile)
 			if err == nil {
 				valuesFiles = append(valuesFiles, zoneGlobalValuesFile)
@@ -198,6 +200,7 @@ func (rz *RunningZone) RunHelm(args []string) error {
 			if err != nil && !os.IsNotExist(err) {
 				return fmt.Errorf("access global values.yaml failed, err: %s", err)
 			}
+
 			zoneComponentValuesFile := path.Join(rz.zone.HelmDirOfComponent(componentName), "values.yaml")
 			valuesFiles = append(valuesFiles, zoneComponentValuesFile)
 
@@ -212,7 +215,9 @@ func (rz *RunningZone) RunHelm(args []string) error {
 		k8s := rz.zone.GetK8SForProduct()
 
 		valuesFiles := []string{}
-		valuesFiles = append(valuesFiles, rz.zone.VarsFile)               //  zone VarsFile always exists.
+		valuesFiles = append(valuesFiles, rz.zone.VarsFile)     // zone VarsFile always exists.
+		valuesFiles = append(valuesFiles, rz.zone.ComputedFile) // zone ComputedFile always exists.
+
 		zoneGlobalValuesFile := path.Join(rz.zone.HelmDir, "values.yaml") // global values.yaml is OPTIONAL.
 		_, err := os.Stat(zoneGlobalValuesFile)
 		if err == nil {
