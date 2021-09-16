@@ -72,7 +72,8 @@ func (o *UpgradeOptions) Validate() error {
 }
 
 func (o *UpgradeOptions) Run(args []string) error {
-	fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
+	options.PrintColorHeader(o.TargetName, o.ZoneName)
+
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if err := zone.Load(); err != nil {
 		return err

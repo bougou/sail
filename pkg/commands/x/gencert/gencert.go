@@ -9,6 +9,7 @@ import (
 	"github.com/bougou/gopkg/cert"
 	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/options"
 	"github.com/spf13/cobra"
 )
 
@@ -84,7 +85,7 @@ func (o *GenCertOptions) Validate() error {
 func (o *GenCertOptions) Run(args []string) error {
 	fmt.Printf("output dir for certs: %s\n", o.OutputDir)
 	if o.TargetName != "" && o.ZoneName != "" {
-		fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
+		options.PrintColorHeader(o.TargetName, o.ZoneName)
 	}
 
 	if o.CAName != "" && len(o.Names) == 0 {

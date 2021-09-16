@@ -83,7 +83,7 @@ func (o *ConfCreateOptions) Validate() error {
 }
 
 func (o *ConfCreateOptions) Run() error {
-	fmt.Printf("👉 target: (%s), zone: (%s)\n", o.TargetName, o.ZoneName)
+	options.PrintColorHeader(o.TargetName, o.ZoneName)
 
 	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if _, err := os.Stat(zone.ZoneDir); !os.IsNotExist(err) {
