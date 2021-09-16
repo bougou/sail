@@ -29,6 +29,8 @@ type RunningZone struct {
 	ansiblePlaybookTags []string
 
 	ansiblePlaybookArgs []string
+
+	helmSetArgs []string
 }
 
 func (rz *RunningZone) WithServerComponents(serverComponents map[string]string) {
@@ -78,6 +80,23 @@ func NewRunningZone(zone *Zone, playbookName string) *RunningZone {
 		"-e",
 		"sail_target_name=" + zone.TargetName,
 		"-e",
+		"sail_zone_name=" + zone.ZoneName,
+	}
+
+	rz.helmSetArgs = []string{
+		"--set",
+		"sail_products_dir=" + zone.sailOption.ProductsDir,
+		"--set",
+		"sail_packages_dir=" + zone.sailOption.PackagesDir,
+		"--set",
+		"sail_targets_dir=" + zone.sailOption.TargetsDir,
+		"--set",
+		"sail_target_dir=" + zone.TargetDir,
+		"--set",
+		"sail_zone_dir=" + zone.ZoneDir,
+		"--set",
+		"sail_target_name=" + zone.TargetName,
+		"--set",
 		"sail_zone_name=" + zone.ZoneName,
 	}
 
@@ -204,7 +223,7 @@ func (rz *RunningZone) RunHelm(args []string) error {
 			zoneComponentValuesFile := path.Join(rz.zone.HelmDirOfComponent(componentName), "values.yaml")
 			valuesFiles = append(valuesFiles, zoneComponentValuesFile)
 
-			if err := helmCmd(helmRelease, helmChartDir, k8s, valuesFiles, args...); err != nil {
+			if err := rz.helmCmd(helmRelease, helmChartDir, k8s, valuesFiles, args...); err != nil {
 				return fmt.Errorf("run helm for component (%s) failed, err: %s", componentName, err)
 			}
 		}
@@ -227,7 +246,7 @@ func (rz *RunningZone) RunHelm(args []string) error {
 			return fmt.Errorf("access global values.yaml failed, err: %s", err)
 		}
 
-		return helmCmd(helmRelease, helmChartDir, k8s, valuesFiles, args...)
+		return rz.helmCmd(helmRelease, helmChartDir, k8s, valuesFiles, args...)
 
 	default:
 		return fmt.Errorf("not supported helm mode: (%s)", rz.zone.SailHelmMode)
@@ -236,7 +255,7 @@ func (rz *RunningZone) RunHelm(args []string) error {
 	return nil
 }
 
-func helmCmd(release string, chartDir string, k8s *K8S, valuesFiles []string, args ...string) error {
+func (rz *RunningZone) helmCmd(release string, chartDir string, k8s *K8S, valuesFiles []string, args ...string) error {
 	helmArgs := []string{
 		"upgrade",
 		release,
@@ -249,7 +268,7 @@ func helmCmd(release string, chartDir string, k8s *K8S, valuesFiles []string, ar
 			helmArgs = append(helmArgs, "--kube-context", k8s.KubeContext)
 		}
 		if k8s.KuebConfig != "" {
-			helmArgs = append(helmArgs, "--kubeconfig", k8s.KuebConfig)
+			helmArgs = append(helmArgs, "--kubeconfig", expandTilde(k8s.KuebConfig))
 		}
 		if k8s.Namespace != "" {
 			helmArgs = append(helmArgs, "--namespace", k8s.Namespace)
@@ -260,6 +279,7 @@ func helmCmd(release string, chartDir string, k8s *K8S, valuesFiles []string, ar
 		helmArgs = append(helmArgs, "--values", valuesFile)
 	}
 
+	helmArgs = append(helmArgs, rz.helmSetArgs...)
 	helmArgs = append(helmArgs, args...)
 
 	ctx, cancel := context.WithCancel(context.Background())

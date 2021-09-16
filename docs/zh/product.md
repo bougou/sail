@@ -19,24 +19,40 @@
 
 ```bash
 ## sail 规范
-components.yaml      # 组件声明
-components/         # 组件声明
-vars.yaml            # 非组件变量，通常定义一些所有组件都通用的变量，如数据目录 data_dir，时区 timezone
-# 所有的「组件变量」以及「非组件变量」最终会合并在一起，称为「环境配置」
-# 把产品部署到不同环境中时，每个环境都拥有自己独立的一份「环境配置」
-# 每个环境的「环境配置」位于环境自己的目录下面（targets/<target>/<zone>/)，可以按照环境实际情况修改
 
-## Ansible 相关
-sail.yaml            # 必须存在的一个 Ansible Playbook 文件
-<playbook>.yaml      # 其它的 Playbook 文件
-
-roles/              # Ansible Roles，实现各个组件的实际的、具体的安装逻辑
+components.yaml       # 组件声明
+components/           # 组件声明
+vars.yaml             # 非组件变量，通常定义一些所有组件都通用的变量，如数据目录 data_dir，时区 timezone
+# 所有的「组件变量」以及「非组件变量」称为「产品变量」
+# 把产品部署到不同环境中时，每个环境都拥有自己独立的一份「产品变量」，可以称作「环境配置」。
+# 产品的组件代码中可以引用这里的「环境配置」变量，比如渲染模板等。
+# 每个环境的「环境配置」位于环境自己的目录下面（targets/<target>/<zone>/)，可以按照环境实际情况修改。
+# `sail` 会自动负责一个环境的「环境配置」变量与 `products/<product-name>` 下的「产品变量」的结构保持一致。
+# 比如 「产品变量」中新增加的变量会自动同步到「环境配置中」。
 
 ## 通用
-resources/          # 其它默认资源，如默认的证书文件、试用 License 文件、默认的 icon 图标等
+resources/            # 其它默认资源，如默认的证书文件、试用 License 文件、默认的 icon 图标等
 
 ## 其它文件
-README.md           # 产品的介绍文档
+README.md             # 产品的介绍文档
+
+## Ansible 相关
+sail.yaml             # 必须存在的一个 Ansible Playbook 文件，可以使用 `sail gen-sail` 命令自动生成 sail.yaml playbook 文件
+<playbook>.yaml       # 其它的 Playbook 文件
+
+
+## 组件代码目录
+roles/                # Roles，实现各个组件的实际的、具体的安装逻辑
+
+
+## Helm Chart 文件
+# 如果你把整个产品作为一个 Helm Chart 来开发，你可以直接把 `products/<product-name>` 目录作为 Helm 的 Chart 目录来使用。
+Chart.yaml    # helm Chart.yaml
+values.yaml   # helm values.yaml
+templates     # helm templates
+crds          # helm crds
+charts        # helm charts
+# Sail 除了支持把整个产品当做一个 Helm Chart，还支持把产品中的每一个组件当做一个 Helm Chart。
 ```
 
 一个产品是由多个组件组成的，你需要为每一个 [组件](./component.md) 编写运维代码。

@@ -188,3 +188,13 @@ Ansible 和 Helm 的核心操作是根据变量去渲染出配置文件。`sail`
     - `sail_zone_name`
 
 除了 `sail` 提供的变量，Ansible 或 Helm 本身也能够识别很多其它变量。
+
+## 组件的部署形式
+
+组件可能以 Pod 中的形式部署到 K8S 平台上，或者以 Server 的形式部署到常规的服务器上。
+按照部署形式，我们把组件分别称作「容器组件」和「常规组件」。
+
+Sail 目前通过 Ansible Role 来部署常规组件，通过 Helm Chart 来部署 Pod 组件。
+
+- [开发 Ansible Role](./ansible.md)
+- [开发 Helm Chart](./helm.md)

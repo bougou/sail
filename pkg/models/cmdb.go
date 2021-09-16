@@ -1,6 +1,12 @@
 package models
 
-import "github.com/bougou/sail/pkg/ansible"
+import (
+	"path"
+	"strings"
+
+	"github.com/bougou/sail/pkg/ansible"
+	"github.com/mitchellh/go-homedir"
+)
 
 type CMDB struct {
 	Inventory *ansible.Inventory  `yaml:"inventory"` // Ansible 格式的主机清单
@@ -15,6 +21,19 @@ type K8S struct {
 	KuebConfig  string `yaml:"kubeConfig"`
 	KubeContext string `yaml:"kubeContext"`
 	Namespace   string `yaml:"namespace"`
+}
+
+func expandTilde(pathstr string) string {
+	if strings.HasPrefix(pathstr, "~") {
+		home, err := homedir.Dir()
+		if err != nil {
+			return ""
+		}
+		s := strings.Replace(pathstr, "~", "", 1)
+		return path.Join(home, s)
+	}
+
+	return pathstr
 }
 
 func NewCMDB() *CMDB {

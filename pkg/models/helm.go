@@ -91,6 +91,9 @@ func (zone *Zone) prepareComponentChart(componentName string) error {
 	// Copy component templates dir from role dir if exists.
 	roleChartTemplatesDir := path.Join(roleChartDir, "templates")
 	zoneComponentChartTemplatesDir := path.Join(zoneComponentChartDir, "templates")
+	if err := os.RemoveAll(zoneComponentChartTemplatesDir); err != nil {
+		return fmt.Errorf("clear templates dir failed, err: %s", err)
+	}
 	if _, err := os.Stat(roleChartTemplatesDir); err == nil {
 		if err := copy.CopyDir(roleChartTemplatesDir+"/", zoneComponentChartTemplatesDir); err != nil {
 			return fmt.Errorf("copy templates dir failed, err: %s", err)
@@ -100,6 +103,9 @@ func (zone *Zone) prepareComponentChart(componentName string) error {
 	// Copy component crds dir from role dir if exists..
 	roleChartCRDsDir := path.Join(roleChartDir, "crds")
 	zoneComponentChartCRDsDir := path.Join(zoneComponentChartDir, "crds")
+	if err := os.RemoveAll(zoneComponentChartCRDsDir); err != nil {
+		return fmt.Errorf("clear crds dir failed, err: %s", err)
+	}
 	if _, err := os.Stat(roleChartCRDsDir); err == nil {
 		if err := copy.CopyDir(roleChartCRDsDir+"/", zoneComponentChartCRDsDir); err != nil {
 			return fmt.Errorf("copy crds dir failed, err: %s", err)
@@ -109,6 +115,9 @@ func (zone *Zone) prepareComponentChart(componentName string) error {
 	// Copy component charts dir from role dir if exists.
 	roleChartChartsDir := path.Join(roleChartDir, "charts")
 	zoneComponentChartChartsDir := path.Join(zoneComponentChartDir, "charts")
+	if err := os.RemoveAll(zoneComponentChartChartsDir); err != nil {
+		return fmt.Errorf("clear charts dir failed, err: %s", err)
+	}
 	if _, err := os.Stat(roleChartChartsDir); err == nil {
 		if err := copy.CopyDir(roleChartChartsDir+"/", zoneComponentChartChartsDir); err != nil {
 			return fmt.Errorf("copy charts dir failed, err: %s", err)
@@ -197,9 +206,12 @@ func (zone *Zone) PrepareHelmChart() error {
 func (zone *Zone) prepareProductChartTemplates() error {
 	productChartTemplatesDir := path.Join(zone.Product.dir, "templates")
 	zoneChartTemplatesDir := path.Join(zone.HelmDirOfProduct(), "templates")
+	if err := os.RemoveAll(zoneChartTemplatesDir); err != nil {
+		return fmt.Errorf("clear templates dir failed, err: %s", err)
+	}
 
 	if err := os.MkdirAll(zoneChartTemplatesDir, os.ModePerm); err != nil {
-		return fmt.Errorf("create helm chart templates dir for product failed, err: %s", err)
+		return fmt.Errorf("create templates dir for product failed, err: %s", err)
 	}
 
 	if stat, err := os.Stat(productChartTemplatesDir); err == nil && stat.IsDir() {
@@ -251,9 +263,12 @@ func (zone *Zone) prepareProductChartTemplates() error {
 func (zone *Zone) prepareProductChartCRDs() error {
 	productChartCRDsDir := path.Join(zone.Product.dir, "crds")
 	zoneChartCRDsDir := path.Join(zone.HelmDirOfProduct(), "crds")
+	if err := os.RemoveAll(zoneChartCRDsDir); err != nil {
+		return fmt.Errorf("clear crds dir failed, err: %s", err)
+	}
 
 	if err := os.MkdirAll(zoneChartCRDsDir, os.ModePerm); err != nil {
-		return fmt.Errorf("create helm chart crds dir for product failed, err: %s", err)
+		return fmt.Errorf("create crds dir for product failed, err: %s", err)
 	}
 
 	if stat, err := os.Stat(productChartCRDsDir); err == nil && stat.IsDir() {
