@@ -20,8 +20,8 @@ the-component-name:
       addr: ""
       endpoints: ""
       url: ""
-      lb_port: 10080
-      pub_port: 80
+      lbPort: 10080
+      pubPort: 80
     http:
       port: 8080
     https:

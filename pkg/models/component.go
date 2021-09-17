@@ -19,27 +19,31 @@ type Component struct {
 	Name    string `yaml:"-"`
 	Version string `yaml:"version"`
 
-	// If RoleName is empty, it will be set to same with Name.
+	// If RoleName is empty, it will be set to component Name.
 	RoleName string `yaml:"roleName"`
 
-	// Form represents the installation method of this component (组件的部署形态), valid values:
+	// Form represents the installation method of this component, valid values:
 	//  * server
 	//  * pod
+	// (组件的部署形态)
 	Form string `yaml:"form"`
 
 	// Pkgs hold all files that are used to complete the deployment of the component.
 	Pkgs []Pkg `yaml:"pkgs"`
 
-	// Enabled represents wether this component is deployed in the specific environment.
+	// Enabled represents whether this component will be deployed in the specific environment.
 	Enabled bool `yaml:"enabled"`
 
-	// External represents wether this component is provided by external system like cloud, and thus no need to be deployed.
+	// External represents whether this component is provided by external system like cloud, and thus no need to be deployed.
 	External bool `yaml:"external"`
 
-	// Services holds all exposed service
+	// Services holds all exposed service of the component.
+	// Each service is exposed by a specific port.
 	Services map[string]Service `yaml:"services"`
 
-	// Computed holds all auto computed service info
+	// Computed holds all auto computed service info.
+	// This field SHOULD NEVER be edited or changed by operators.
+	// The field is always automaticllay computed based on other fields of Component.
 	Computed map[string]ServiceComputed `yaml:"computed"`
 
 	// Requires represents the other components on which this component depends on.
@@ -60,7 +64,7 @@ type Component struct {
 	Children []string `yaml:"children"`
 
 	// Applied roles for this component.
-	// The empty list will apply at least one role with the componen's RoleName.
+	// The empty list will apply at least one role with the component's RoleName.
 	Roles []string `yaml:"roles"`
 
 	Vars map[string]interface{} `yaml:"vars"`
