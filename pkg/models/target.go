@@ -11,7 +11,17 @@ type Target struct {
 
 	sailOption *SailOption
 	dir        string
-	vars       map[string]interface{}
+	vars       *TargetVars
+}
+
+type TargetVars struct {
+	Zones map[string]interface{}
+}
+
+func NewTargetVars() *TargetVars {
+	return &TargetVars{
+		Zones: make(map[string]interface{}),
+	}
 }
 
 func NewTarget(sailOption *SailOption, name string) *Target {
@@ -19,7 +29,7 @@ func NewTarget(sailOption *SailOption, name string) *Target {
 		Name: name,
 
 		sailOption: sailOption,
-		vars:       make(map[string]interface{}),
+		vars:       NewTargetVars(),
 		dir:        path.Join(sailOption.TargetsDir, name),
 	}
 }
@@ -70,7 +80,7 @@ func (t *Target) LoadZone(zoneName string) error {
 	zoneV["platforms"] = zone.CMDB.Platforms
 	zoneV["inventory"] = zone.CMDB.Inventory
 
-	t.vars[zoneName] = zoneV
+	t.vars.Zones[zoneName] = zoneV
 	return nil
 }
 

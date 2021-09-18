@@ -8,7 +8,7 @@ Ansible 和 Helm 的核心操作是根据变量去渲染出配置文件。`sail`
 
 1. 环境特有的变量信息
 
-    - `targets/<target_name>/<zone_name>/vars.yaml` 文件中的变量，包含所有组件变量以及非组件变量。
+    - `targets/<target_name>/<zone_name>/vars.yaml` 文件中的变量，包含所有组件变量以及通用变量。
     - `targets/<target_name>/<zone_name>/_computed.yaml`
 
     在使用 Helm 部署容器组件时，还会传递一些其它的文件。见文档 [Helm](./helm.md)。

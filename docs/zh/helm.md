@@ -22,7 +22,7 @@ Sail 支持两种模式来使用 Helm Chart。
 # 不管使用 Ansible 还是 Helm 来部署，
 # 都必须要在 components.yaml 和 vars.yaml 中声明该产品的组件和变量
 components.yaml # sail 组件声明
-vars.yaml       # sail 非组件变量
+vars.yaml       # sail 通用变量
 
 Chart.yaml      # helm Chart.yaml
 values.yaml     # helm values.yaml

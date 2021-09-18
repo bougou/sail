@@ -48,6 +48,8 @@ type Component struct {
 
 	// Requires represents the other components on which this component depends on.
 	// If this component is activated (enabled:true or external:true), then all these required components also need to be activated.
+	// 依赖的服务（其它组件提供的服务，不能依赖自身组件）
+	// Todo, check cycle
 	Requires []Require `yaml:"requires"`
 
 	// The list value of `deps` represents the other services which depend on this service.

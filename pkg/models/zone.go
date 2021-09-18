@@ -46,7 +46,7 @@ type Zone struct {
 
 	Product    *Product
 	CMDB       *CMDB
-	TargetVars map[string]interface{}
+	TargetVars *TargetVars
 
 	ansibleCfgFile string
 
@@ -71,7 +71,7 @@ func NewZone(sailOption *SailOption, targetName string, zoneName string) *Zone {
 		HelmDir: path.Join(sailOption.TargetsDir, targetName, zoneName, "helm"),
 
 		CMDB:       NewCMDB(),
-		TargetVars: make(map[string]interface{}),
+		TargetVars: NewTargetVars(),
 
 		ansibleCfgFile: path.Join(sailOption.ProductsDir, "ansible.cfg"),
 
