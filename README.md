@@ -1,6 +1,6 @@
 # sail
 
-[中文文档](./docs/readme_zh.md)
+[中文文档](./docs/zh/README.md)
 
 `sail` is an operation framework based on Ansible/Helm. `sail` follows the principles of ***Infrastructure as Code (IaC)***,  ***Operation as Code (OaC)***，and ***Everything as Code***. So it is a tool for ***DevOps***.
 
