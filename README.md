@@ -86,4 +86,8 @@ $ sail upgrade -t <targetname> -z <zonename> \
 
 ## Documents
 
+- [How to develop product operation code](./docs/en/product.md)
+- [How to develop component operation code](./docs/en/component.md)
+- [How to maintain cmdb for deploy target](./docs/en/cmdb.md)
+- [Sail command usage](./docs/en/sail-commands.md)
 - [QuickStart](./docs/quick-start.md)

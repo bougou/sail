@@ -204,7 +204,7 @@ Sail 目前通过 Ansible Role 来部署常规组件，通过 Helm Chart 来部�
 
 当你决定自己去部署该组件时，请把 `enabled` 设置为 `true`。
 
-在有些环境中，产品的某些组件甚至不用部署，请把 `extenal` 和 `enabled` 都设置为 `false`。
+在有些环境中，产品的某些组件甚至不用部署，请把 `external` 和 `enabled` 都设置为 `false`。
 
 `enabled` 和 `external` 有三种使用组合：
 
@@ -232,10 +232,10 @@ mysql:
 - 一个组件可以向其它组件提供 0 个，1 个或多个服务。
 - 一个服务对应一个端口。
 
-`services` 字段是一个由端口名（或者称为服务名）作为键的字典结构。
-
 如果一个组件对外暴露了多个端口，那么必须定义为多个 Service。
 端口名（或服务名）可以是任意有意义的 alphanum 字符串，比如 "web", "http", "rpc", "cluster", "default" 等等。
+
+`services` 字段是一个由端口名（或者称为服务名）作为键的字典结构。
 
 ```yaml
 <componentName>:

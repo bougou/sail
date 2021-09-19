@@ -51,7 +51,7 @@ type Product struct {
 func (p *Product) Compute(cmdb *CMDB) error {
 	for k, c := range p.Components {
 		if err := c.Compute(cmdb); err != nil {
-			msg := fmt.Sprintf("compute product comoponent (%s) failed, err: %s", k, err)
+			msg := fmt.Sprintf("compute product component (%s) failed, err: %s", k, err)
 			return errors.New(msg)
 		}
 	}

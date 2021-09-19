@@ -1,58 +1,83 @@
-# 产品
+# Product
 
-一个产品的运维代码，需要以产品名作为文件夹名称，放到 `sail` 指定的 `products-dir` 目录下。
-文档中其它部分都假设 `products-dir` 目录为 `products`。
+The operation code for a specific product should be put under `products-dir` with `<product-name>` as the directory name.
 
-`products/<product-name>` 目录下面就是该产品的「部署代码」，里面封装了该产品的所有部署及运维逻辑。
+The `products-dir` is refered as `products` in other places in the documents.
 
-理想情况下，products 目录的内容应该维护在一个 Git 仓库中（或者按产品维护在多个仓库里）。
-当产品的运维逻辑需要更新时，你都应该去修改仓库中对应的产品运维代码。
+> Ideally, the contents of `products` should be maintained in a Git repo.
+> Or, you can keep one separated Git repo for each product.
+> If have to change the operation code for the product when the operation logic of the product is changed.
 
-> `products` 目录下除了各个产品的子文件夹外，有三个「文件或目录名」被 `sail` 用作特殊的目的。
-> - `ansible.cfg` Ansible 的配置文件，`sail` 在执行的时候会自动生成该文件（如果不存在）
-> - `shared_roles` 存放被多个产品公用的 role(s)
-> - `shared_tasks` 存放通用的 Ansible Tasks，可以看做工具库
+There are three special files or directories reserved by `sail` for special purposes.
 
-## Product 的目录结构
+> - `ansible.cfg` `sail` will auto generate one if it not exists
+> - `shared_roles`
+> - `shared_tasks`
 
-`products/<product-name>` 的目录结构：
+## Product directory structure
+
+The directory structure for `products/<product-name>`:
 
 ```bash
-## sail 规范
+## Sail specification
+components.yaml       # component declaration/variables
+components/           # component declaration/variables
+vars.yaml             # general variables, like data_dir or timezone etc
+# all component variables and general variables are called product variables
+# the product variables SHOULD be referenced by Ansible/Helm code
+# each deploy target environment will have its own copied and product variables,
+# which can be called environment configurations and the are kept under targets/<target>/<zone>/vars.yaml
+# `sail` will automatically keep the environment configurations and product variables have a same structure,
+# like adding new variables from product variables to environment configurations
 
-components.yaml       # 组件声明
-components/           # 组件声明
-vars.yaml             # 非组件变量，通常定义一些所有组件都通用的变量，如数据目录 data_dir，时区 timezone
-# 所有的「组件变量」以及「非组件变量」称为「产品变量」
-# 把产品部署到不同环境中时，每个环境都拥有自己独立的一份「产品变量」，可以称作「环境配置」。
-# 产品的组件代码中可以引用这里的「环境配置」变量，比如渲染模板等。
-# 每个环境的「环境配置」位于环境自己的目录下面（targets/<target>/<zone>/)，可以按照环境实际情况修改。
-# `sail` 会自动负责一个环境的「环境配置」变量与 `products/<product-name>` 下的「产品变量」的结构保持一致。
-# 比如 「产品变量」中新增加的变量会自动同步到「环境配置中」。
+## General
+resources/            # other resources files，like https cert files, license files, or icon images
 
-## 通用
-resources/            # 其它默认资源，如默认的证书文件、试用 License 文件、默认的 icon 图标等
+## others
+README.md             # introduction
 
-## 其它文件
-README.md             # 产品的介绍文档
+## Ansible specific
+sail.yaml             # A must exist Ansible Playbook, you can use `sail gen-sail` to generate it automatically
+<playbook>.yaml       # any other playbook file
+                      # In most cases, one playbook file is sufficient.
 
-## Ansible 相关
-sail.yaml             # 必须存在的一个 Ansible Playbook 文件，可以使用 `sail gen-sail` 命令自动生成 sail.yaml playbook 文件
-<playbook>.yaml       # 其它的 Playbook 文件
+## implementation code for components
+roles/                # Roles
 
 
-## 组件代码目录
-roles/                # Roles，实现各个组件的实际的、具体的安装逻辑
-
-
-## Helm Chart 文件
-# 如果你把整个产品作为一个 Helm Chart 来开发，你可以直接把 `products/<product-name>` 目录作为 Helm 的 Chart 目录来使用。
+## Helm Chart
+# If you want to develop the product as a whole helm chart,
+# you can use `products/<product-name>` directory as standarad helm chart base dir.
 Chart.yaml    # helm Chart.yaml
 values.yaml   # helm values.yaml
 templates     # helm templates
 crds          # helm crds
 charts        # helm charts
-# Sail 除了支持把整个产品当做一个 Helm Chart，还支持把产品中的每一个组件当做一个 Helm Chart。
+## Note
+# Sail also support developing helm chart for each component of the product,
 ```
 
-一个产品是由多个组件组成的，你需要为每一个 [组件](./component.md) 编写运维代码。
+A product is composed of components, so you have to develop operation code for each [Component](./component.md).
+
+## Product Variables
+
+You have to declare all product variables which may used when deploying the product.
+The product operation code needs to do and finish its job by these variables.
+
+For different target envionrments, the "business operators" just need to maintain
+these product variables matched with the real environment, and then execute `sail` command
+to install or upgrade the product.
+
+> The "business operator" does not have to care how the product is installed, because the
+> installtaion details have been already coded and implemented in product operation code.
+>
+> If `sail` reported failure in executation, there are basically two reasons:
+> 1. the variables of the environment is not configured properly.
+> 2. there are bugs in the production operation code.
+
+`sail` reserved the following variables, please don't use them when declaring product variables.
+
+- `_sail*` Sail keeps all `_sail` prefixed variables reserved.
+- `inventory`
+- `platforms`
+- `targetvars`
