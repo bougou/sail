@@ -385,7 +385,7 @@ func (zone *Zone) LoadHosts() error {
 func (zone *Zone) LoadPlatforms() error {
 	b, err := os.ReadFile(zone.PlatformsFile)
 	if err != nil {
-		return fmt.Errorf("read file (%s) failed, err: %s", zone.HostsFile, err)
+		return fmt.Errorf("read file (%s) failed, err: %s", zone.PlatformsFile, err)
 	}
 
 	i := map[string]Platform{}

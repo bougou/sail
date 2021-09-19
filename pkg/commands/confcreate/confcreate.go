@@ -12,10 +12,13 @@ import (
 )
 
 var (
-	defaultInstallDir = "/opt"
-	defaultDataDir    = "/data"
-	defaultSSHUser    = "root"
-	defaultSSHPort    = 22
+	defaultInstallDir  = "/opt"
+	defaultDataDir     = "/data"
+	defaultSSHUser     = "root"
+	defaultSSHPort     = 22
+	defaultKubeConfig  = "~/.kube/config"
+	defaultKubeContext = ""
+	defaultNamespace   = "default"
 )
 
 func NewCmdConfCreate(sailOption *models.SailOption) *cobra.Command {
@@ -46,20 +49,28 @@ func NewCmdConfCreate(sailOption *models.SailOption) *cobra.Command {
 
 	cmd.Flags().StringArrayVarP(&o.Hosts, "hosts", "", o.Hosts, "the hosts")
 
+	cmd.Flags().StringVar(&o.KubeConfig, "kubeconfig", defaultKubeConfig, "path to the kubeconfig file")
+	cmd.Flags().StringVar(&o.KubeContext, "kube-context", defaultKubeContext, "name of the kubeconfig context to use")
+	cmd.Flags().StringVar(&o.Namespace, "namespace", defaultNamespace, "k8s namespace scope")
+
 	return cmd
 }
 
 type ConfCreateOptions struct {
-	TargetName  string `json:"target_name"`
-	ZoneName    string `json:"zone_name"`
-	ProductName string `json:"product_name"`
+	TargetName  string
+	ZoneName    string
+	ProductName string
 
-	InstallDir string `json:"install_dir"`
-	DataDir    string `json:"data_dir"`
-	SSHUser    string `json:"ssh_user"`
-	SSHPort    int    `json:"ssh_port"`
+	InstallDir string
+	DataDir    string
+	SSHUser    string
+	SSHPort    int
 
-	Hosts []string `json:"hosts"`
+	Hosts []string
+
+	KubeConfig  string
+	KubeContext string
+	Namespace   string
 
 	sailOption *models.SailOption
 }
@@ -106,6 +117,15 @@ func (o *ConfCreateOptions) Run() error {
 		msg := fmt.Sprintf("parse hosts option failed, err: %s", err)
 		return errors.New(msg)
 	}
+
+	platform := models.Platform{
+		K8S: &models.K8S{
+			KubeConfig:  o.KubeConfig,
+			KubeContext: o.KubeContext,
+			Namespace:   o.Namespace,
+		},
+	}
+	zone.CMDB.Platforms["all"] = platform
 
 	if err := zone.PatchActionHostsMap(m); err != nil {
 		return err

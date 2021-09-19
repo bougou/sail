@@ -267,8 +267,8 @@ func (rz *RunningZone) helmCmd(release string, chartDir string, k8s *K8S, values
 		if k8s.KubeContext != "" {
 			helmArgs = append(helmArgs, "--kube-context", k8s.KubeContext)
 		}
-		if k8s.KuebConfig != "" {
-			helmArgs = append(helmArgs, "--kubeconfig", expandTilde(k8s.KuebConfig))
+		if k8s.KubeConfig != "" {
+			helmArgs = append(helmArgs, "--kubeconfig", expandTilde(k8s.KubeConfig))
 		}
 		if k8s.Namespace != "" {
 			helmArgs = append(helmArgs, "--namespace", k8s.Namespace)

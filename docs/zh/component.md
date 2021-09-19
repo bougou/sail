@@ -369,15 +369,29 @@ mysql:
       # <host> 和 <port> 为上面计算出来的 host 和 port
       addr: "ipaddr-or-hostname:3306"
 
-      # 如果 Service.endpoints 非空，则取值 Service.endpoints
+      # 如果 Service.path 非空且以 "/" 开头，则取值 Service.path
+      # 如果 Service.path 非空且不以 "/" 开头，则取值 "/"+Service.path
+      # 否则设置为 "/"
+      path: "/"
+
+      # 否则把上面计算出来的 host 作为唯一元素加到 hosts 中
+      hosts:
+        - "ipaddr-or-hostname"
+
+      # 如果 Service.addrs 非空，则取值 Service.addrs
       # 否则把上面计算出来的 addr 作为唯一元素加到 endpoints 中
-      endpoints:
+      addrs:
         - "ipaddr-or-hostname:3306"
 
-      # 如果 Service.urls 非空，则取值 Service.urls
-      # 否则把上面计算出来的 endpoints 中的每个元素加上 scheme 前缀 "<scheme>:<endpoint>" 加入 urls 中
-      urls:
+      # 如果 Service.endpoints 非空，则取值 Service.endpoints
+      # 否则把上面计算出来的 addrs 中的每个元素加上 scheme 前缀 "<scheme>://<addr>" 加入 urls 中
+      endpoints:
         - "tcp://ipaddr-or-hostname:3306"
+
+      # 如果 Service.urls 非空，则取值 Service.urls
+      # 否则把上面计算出来的 endpoints 中的每个元素加上 path 后缀 "<endpoint><path>" 加入 urls 中
+      urls:
+        - "tcp://ipaddr-or-hostname:3306/"
 ```
 
 你应该在 Ansible 和 Helm 中引用组件的 computed 下的字段用于访问相关的服务。
@@ -421,15 +435,29 @@ mysql:
       # <host> 和 <port> 为上面计算出来的 host 和 port
       addr: <computed>
 
+      # 如果 Service.path 非空且以 "/" 开头，则取值 Service.path
+      # 如果 Service.path 非空且不以 "/" 开头，则取值 "/"+Service.path
+      # 否则设置为 "/"
+      path: "/"
+
+      # 去查询主机清单 "targets/<target_name>/<zone_name>/hosts.yaml"
+      # 如果主机清单中存在该组件，则取值为主机清单中该组件的主机列表
+      # 所有其它情况，把上面计算出来的 host 作为唯一元素加到 hosts 中
+      hosts:
+        - <computed>
+
+      # 如果 Service.addrs 非空，则取值 Service.addrs
+      # 否则把上面计算出来的 hosts 中的每个元素加上 port 后缀 "<host>:<port>" 加入 addrs 中
+      addrs:
+        - <computed>
+
       # 如果 Service.endpoints 非空，则取值 Service.endpoints
-      # 否则去查询主机清单 "targets/<target_name>/<zone_name>/hosts.yaml"
-      # 如果主机清单中存在该组件，则把主机列表中的每个主机与上面计算出来的 port 拼起来 (host:port) 加入 endpoints 中
-      # 所有其它情况，把上面计算出来的 addr 作为唯一元素加到 endpoints 中
+      # 否则把上面计算出来的 addrs 中的每个元素加上 scheme 前缀 "<scheme>://<addr>" 加入 endpoints 中
       endpoints:
         - <computed>
 
       # 如果 Service.urls 非空，则取值 Service.urls
-      # 否则把上面计算出来的 endpoints 中的每个元素加上 scheme 前缀 "<scheme>:<endpoint>" 加入 urls 中
+      # 否则把上面计算出来的 endpoints 中的每个元素加上 path 后缀 "<endpoint>:<path>" 加入 urls 中
       urls:
         - <computed>
 ```
@@ -468,30 +496,49 @@ elasticsearch:
 ```yaml
 elasticsearch:
   computed:
-    default:
-      scheme: http
+    cluster:
+      scheme: tcp
       host: 192.168.1.10
-      port: 9200
-      addr: 192.168.1.10:9200
+      port: 9300
+      addr: 192.168.1.10:9300
+      path: /
+      hosts:
+        - 192.168.1.10
+        - 192.168.1.11
+        - 192.168.1.12
+      addrs:
+        - 192.168.1.10:9300
+        - 192.168.1.11:9300
+        - 192.168.1.12:9300
       endpoints:
+        - tcp://192.168.1.10:9300
+        - tcp://192.168.1.11:9300
+        - tcp://192.168.1.12:9300
+      urls:
+        - tcp://192.168.1.10:9300/
+        - tcp://192.168.1.11:9300/
+        - tcp://192.168.1.12:9300/
+    default:
+      scheme: tcp
+      host: 192.168.1.11
+      port: 9200
+      addr: 192.168.1.11:9200
+      path: /
+      hosts:
+        - 192.168.1.10
+        - 192.168.1.11
+        - 192.168.1.12
+      addrs:
         - 192.168.1.10:9200
         - 192.168.1.11:9200
         - 192.168.1.12:9200
-      urls:
-        - http://192.168.1.10:9200
-        - http://192.168.1.11:9200
-        - http://192.168.1.12:9200
-    cluster:
-      scheme: http
-      host: 192.168.1.11
-      port: 9300
-      addr: 192.168.1.11:9300
       endpoints:
-        - 192.168.1.12:9300
-        - 192.168.1.11:9300
-        - 192.168.1.10:9300
+        - tcp://192.168.1.10:9200
+        - tcp://192.168.1.11:9200
+        - tcp://192.168.1.12:9200
       urls:
-        - http://192.168.1.12:9300
-        - http://192.168.1.11:9300
-        - http://192.168.1.10:9300
+        - tcp://192.168.1.10:9200/
+        - tcp://192.168.1.11:9200/
+        - tcp://192.168.1.12:9200/
+
 ```

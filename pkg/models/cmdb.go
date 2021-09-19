@@ -18,7 +18,7 @@ type Platform struct {
 }
 
 type K8S struct {
-	KuebConfig  string `yaml:"kubeConfig"`
+	KubeConfig  string `yaml:"kubeConfig"`
 	KubeContext string `yaml:"kubeContext"`
 	Namespace   string `yaml:"namespace"`
 }

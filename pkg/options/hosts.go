@@ -8,11 +8,11 @@ import (
 	"github.com/bougou/sail/pkg/models"
 )
 
-// ParseHostsOption parses --hosts options and interprets them as a map of list of ActionHosts for each component.
+// ParseHostsOption parses --hosts options and interprets them as a map,
 // key is component name, value is a list of ActionHosts.
 //
 // eg options:
-// --hosts A,B/10.0.0.1,10.0.0.2 --hosts +C/10.0.0.3,10.0.0.4 --hosts -C,D,E/10.0.0.4
+//   --hosts A,B/10.0.0.1,10.0.0.2 --hosts +C/10.0.0.3,10.0.0.4 --hosts -C,D,E/10.0.0.4
 //
 // result:
 //

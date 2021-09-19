@@ -24,7 +24,9 @@ type Service struct {
 	Port int `yaml:"port"`
 
 	Addr string `yaml:"addr"`
+	Path string `yaml:"path"`
 
+	Addrs     []string `yaml:"addrs"`
 	Endpoints []string `yaml:"endpoints"`
 	URLs      []string `yaml:"urls"`
 
@@ -37,6 +39,7 @@ func NewService(componentName string, serviceName string) *Service {
 	s := &Service{
 		Name:          serviceName,
 		ComponentName: componentName,
+		Addrs:         make([]string, 0),
 		Endpoints:     make([]string, 0),
 		URLs:          make([]string, 0),
 	}
@@ -75,6 +78,9 @@ type ServiceComputed struct {
 	Host      string   `yaml:"host"`
 	Port      int      `yaml:"port"`
 	Addr      string   `yaml:"addr"`
+	Path      string   `yaml:"path"`
+	Hosts     []string `yaml:"hosts"`
+	Addrs     []string `yaml:"addrs"`
 	Endpoints []string `yaml:"endpoints"`
 	URLs      []string `yaml:"urls"`
 }
@@ -82,6 +88,8 @@ type ServiceComputed struct {
 // NewServiceComputed returns a computed service.
 func NewServiceComputed() *ServiceComputed {
 	sc := &ServiceComputed{
+		Hosts:     make([]string, 0),
+		Addrs:     make([]string, 0),
 		Endpoints: make([]string, 0),
 		URLs:      make([]string, 0),
 	}
@@ -147,24 +155,53 @@ func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
 	}
 	svcComputed.Addr = addr
 
-	endpoints := []string{}
-	if len(s.Endpoints) != 0 {
-		endpoints = append(endpoints, s.Endpoints...)
-	} else {
-		if cmdb.Inventory.HasGroup(s.ComponentName) {
-			g, err := cmdb.Inventory.GetGroup(s.ComponentName)
-			if err != nil {
-				return nil, fmt.Errorf("get component (%s) from inventory failed, err: %s", s.ComponentName, err)
-			}
-			hosts := g.HostsList()
-			for _, host := range hosts {
-				endpoint := fmt.Sprintf("%s:%d", host, svcComputed.Port)
-				endpoints = append(endpoints, endpoint)
-			}
+	path := "/"
+	if s.Path != "" {
+		if !strings.HasPrefix(s.Path, "/") {
+			path = "/" + s.Path
+		} else {
+			path = s.Path
 		}
 	}
-	if len(endpoints) == 0 {
-		endpoints = append(endpoints, svcComputed.Addr)
+	svcComputed.Path = path
+
+	hosts := []string{}
+	if cmdb.Inventory.HasGroup(s.ComponentName) {
+		g, err := cmdb.Inventory.GetGroup(s.ComponentName)
+		if err != nil {
+			return nil, fmt.Errorf("get component (%s) from inventory failed, err: %s", s.ComponentName, err)
+		}
+		hosts = g.HostsList()
+	}
+	if len(hosts) == 0 {
+		hosts = append(hosts, svcComputed.Host)
+	}
+	svcComputed.Hosts = hosts
+
+	addrs := []string{}
+	if len(s.Addrs) != 0 {
+		addrs = append(addrs, s.Addrs...)
+	} else {
+		for _, host := range svcComputed.Hosts {
+			addr := fmt.Sprintf("%s:%d", host, svcComputed.Port)
+			addrs = append(addrs, addr)
+		}
+	}
+	svcComputed.Addrs = addrs
+
+	endpoints := []string{}
+	if len(s.Endpoints) != 0 {
+		for _, endpoint := range s.Endpoints {
+			if !strings.Contains(endpoint, "://") {
+				endpoint = fmt.Sprintf("%s://%s", svcComputed.Scheme, endpoint)
+			}
+			endpoints = append(endpoints, endpoint)
+		}
+	} else {
+		for _, addr := range svcComputed.Addrs {
+			endpoint := fmt.Sprintf("%s://%s", svcComputed.Scheme, addr)
+			endpoints = append(endpoints, endpoint)
+		}
 	}
 	svcComputed.Endpoints = endpoints
 
@@ -172,8 +209,8 @@ func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
 	if len(s.URLs) != 0 {
 		urls = append(urls, s.URLs...)
 	} else {
-		for _, v := range svcComputed.Endpoints {
-			url := fmt.Sprintf("%s://%s", svcComputed.Scheme, v)
+		for _, endpoint := range svcComputed.Endpoints {
+			url := fmt.Sprintf("%s%s", endpoint, svcComputed.Path)
 			urls = append(urls, url)
 		}
 	}
@@ -212,11 +249,44 @@ func (s *Service) computeExternal() (*ServiceComputed, error) {
 	}
 	svcComputed.Addr = addr
 
-	var endpoints []string
-	if len(s.Endpoints) != 0 {
-		endpoints = append(endpoints, s.Endpoints...)
+	path := "/"
+	if s.Path != "" {
+		if !strings.HasPrefix(s.Path, "/") {
+			path = "/" + s.Path
+		} else {
+			path = s.Path
+		}
+	}
+	svcComputed.Path = path
+
+	hosts := []string{}
+	hosts = append(hosts, svcComputed.Host)
+	svcComputed.Hosts = hosts
+
+	addrs := []string{}
+	if len(s.Addrs) != 0 {
+		addrs = append(addrs, s.Addrs...)
 	} else {
-		endpoints = append(endpoints, svcComputed.Addr)
+		for _, host := range svcComputed.Hosts {
+			addr := fmt.Sprintf("%s:%d", host, svcComputed.Port)
+			addrs = append(addrs, addr)
+		}
+	}
+	svcComputed.Addrs = addrs
+
+	endpoints := []string{}
+	if len(s.Endpoints) != 0 {
+		for _, endpoint := range s.Endpoints {
+			if !strings.Contains(endpoint, "://") {
+				endpoint = fmt.Sprintf("%s://%s", svcComputed.Scheme, endpoint)
+			}
+			endpoints = append(endpoints, endpoint)
+		}
+	} else {
+		for _, addr := range svcComputed.Addrs {
+			endpoint := fmt.Sprintf("%s://%s", svcComputed.Scheme, addr)
+			endpoints = append(endpoints, endpoint)
+		}
 	}
 	svcComputed.Endpoints = endpoints
 
@@ -224,8 +294,8 @@ func (s *Service) computeExternal() (*ServiceComputed, error) {
 	if len(s.URLs) != 0 {
 		urls = append(urls, s.URLs...)
 	} else {
-		for _, v := range svcComputed.Endpoints {
-			url := fmt.Sprintf("%s://%s", svcComputed.Scheme, v)
+		for _, endpoint := range svcComputed.Endpoints {
+			url := fmt.Sprintf("%s%s", endpoint, svcComputed.Path)
 			urls = append(urls, url)
 		}
 	}

@@ -356,16 +356,30 @@ mysql:
       # the <host> and <port> are the above computed host and port
       addr: "ipaddr-or-hostname:3306"
 
-      # set to Service.endpoints if Service.endpoints is not empty
-      # or else use the above computed addr as the only element for endpoints
-      endpoints:
+      # set to Service.path if Service.path is not empty, or else set to "/"
+      path: "/"
+
+      # use the above computed host as the only element for hosts
+      hosts:
+        - "ipaddr-or-hostname"
+
+      # set to Service.addrs if it is not empty
+      # or else set to the above computed hosts with each item
+      # suffixed by the above computed port ("<host>:<port>")
+      addrs:
         - "ipaddr-or-hostname:3306"
 
-      # set to Service.urls if Service.urls is not empty
-      # or else use set to the above computed endpoints with each item
-      # prefixed by the above computed scheme ("<scheme>:<endpoint>")
-      urls:
+      # set to Service.endpoints if it is not empty
+      # or else set to the above computed addrs with each item
+      # prefixed by the above computed scheme ("<scheme>://<addr>")
+      endpoints:
         - "tcp://ipaddr-or-hostname:3306"
+
+      # set to Service.urls if it is not empty
+      # or else set to the above computed endpoints with each item
+      # suffixed by the above computed path ("<endpoint><path>")
+      urls:
+        - "tcp://ipaddr-or-hostname:3306/"
 ```
 
 You should always use fields under `computed` to access the services exposed by components.
@@ -410,17 +424,29 @@ mysql:
       # the <host> and <port> are the above computed host 和 port
       addr: <computed>
 
-      # set to Service.endpoints if Service.endpoints not empty
-      # or else to query hosts inventory "targets/<target_name>/<zone_name>/hosts.yaml"
+      # set to Service.path if Service.path is not empty, or else set to "/"
+      path: "/"
+
+      # query hosts inventory "targets/<target_name>/<zone_name>/hosts.yaml"
       # if the component exists in the inventory and the hosts for the component is not emtpy,
-      # then set to all hosts with each host suffixed with port
-      # For all other cases, use the addr as the only element for endpoints.
+      # then set to the hosts list fetched from the inventory.
+      # for all other cases, use the above host as the only element for hosts.
+      hosts:
+        - <computed>
+
+      # set to Service.addrs if it is not empty
+      # or else set to all hosts with each host suffixed with port <host>:<port>
+      addrs:
+        - <computed>
+
+      # set to Service.endpoints if it is not empty
+      # or else set to all addrs with each addr prefixed with scheme <scheme>://<addr>
       endpoints:
         - <computed>
 
-      # set to Service.urls if Service.urls not empty
-      # or else use set to the above computed endpoints with each item
-      # prefixed by the above computed scheme ("<scheme>:<endpoint>")      urls:
+      # set to Service.urls if it is not empty
+      # or else set to all endpoints with each endpoint suffixed with path <endpoint>://<path>
+      urls:
         - <computed>
 ```
 
@@ -458,30 +484,48 @@ Then, the `computed` will be:
 ```yaml
 elasticsearch:
   computed:
-    default:
-      scheme: http
+    cluster:
+      scheme: tcp
       host: 192.168.1.10
-      port: 9200
-      addr: 192.168.1.10:9200
+      port: 9300
+      addr: 192.168.1.10:9300
+      path: /
+      hosts:
+        - 192.168.1.10
+        - 192.168.1.11
+        - 192.168.1.12
+      addrs:
+        - 192.168.1.10:9300
+        - 192.168.1.11:9300
+        - 192.168.1.12:9300
       endpoints:
+        - tcp://192.168.1.10:9300
+        - tcp://192.168.1.11:9300
+        - tcp://192.168.1.12:9300
+      urls:
+        - tcp://192.168.1.10:9300/
+        - tcp://192.168.1.11:9300/
+        - tcp://192.168.1.12:9300/
+    default:
+      scheme: tcp
+      host: 192.168.1.11
+      port: 9200
+      addr: 192.168.1.11:9200
+      path: /
+      hosts:
+        - 192.168.1.10
+        - 192.168.1.11
+        - 192.168.1.12
+      addrs:
         - 192.168.1.10:9200
         - 192.168.1.11:9200
         - 192.168.1.12:9200
-      urls:
-        - http://192.168.1.10:9200
-        - http://192.168.1.11:9200
-        - http://192.168.1.12:9200
-    cluster:
-      scheme: http
-      host: 192.168.1.11
-      port: 9300
-      addr: 192.168.1.11:9300
       endpoints:
-        - 192.168.1.12:9300
-        - 192.168.1.11:9300
-        - 192.168.1.10:9300
+        - tcp://192.168.1.10:9200
+        - tcp://192.168.1.11:9200
+        - tcp://192.168.1.12:9200
       urls:
-        - http://192.168.1.12:9300
-        - http://192.168.1.11:9300
-        - http://192.168.1.10:9300
+        - tcp://192.168.1.10:9200/
+        - tcp://192.168.1.11:9200/
+        - tcp://192.168.1.12:9200/
 ```
