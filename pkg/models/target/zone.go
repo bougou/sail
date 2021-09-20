@@ -1,4 +1,4 @@
-package models
+package target
 
 import (
 	"errors"
@@ -11,6 +11,9 @@ import (
 
 	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/ansible"
+	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/models/cmdb"
+	"github.com/bougou/sail/pkg/models/product"
 	"gopkg.in/yaml.v3"
 )
 
@@ -44,16 +47,16 @@ type Zone struct {
 
 	HelmDir string
 
-	Product    *Product
-	CMDB       *CMDB
+	Product    *product.Product
+	CMDB       *cmdb.CMDB
 	TargetVars *TargetVars
 
 	ansibleCfgFile string
 
-	sailOption *SailOption
+	sailOption *models.SailOption
 }
 
-func NewZone(sailOption *SailOption, targetName string, zoneName string) *Zone {
+func NewZone(sailOption *models.SailOption, targetName string, zoneName string) *Zone {
 	zone := &Zone{
 		TargetName: targetName,
 		ZoneName:   zoneName,
@@ -70,7 +73,7 @@ func NewZone(sailOption *SailOption, targetName string, zoneName string) *Zone {
 
 		HelmDir: path.Join(sailOption.TargetsDir, targetName, zoneName, "helm"),
 
-		CMDB:       NewCMDB(),
+		CMDB:       cmdb.NewCMDB(),
 		TargetVars: NewTargetVars(),
 
 		ansibleCfgFile: path.Join(sailOption.ProductsDir, "ansible.cfg"),
@@ -89,12 +92,12 @@ func (zone *Zone) LoadNew() error {
 	if zone.SailProduct == "" {
 		return errors.New("empty product name")
 	}
-	product := NewProduct(zone.SailProduct, zone.sailOption.ProductsDir)
-	if err := product.Init(); err != nil {
+	p := product.NewProduct(zone.SailProduct, zone.sailOption.ProductsDir)
+	if err := p.Init(); err != nil {
 		return fmt.Errorf("init product failed, err: %s", err)
 	}
 
-	zone.Product = product
+	zone.Product = p
 
 	// fill zone meta vars
 	zone.Product.Vars[SailMetaVarProduct] = zone.SailProduct
@@ -116,8 +119,8 @@ func (zone *Zone) Load() error {
 		return errors.New("empty product name")
 	}
 
-	product := NewProduct(zone.SailProduct, zone.sailOption.ProductsDir)
-	if err := product.Init(); err != nil {
+	p := product.NewProduct(zone.SailProduct, zone.sailOption.ProductsDir)
+	if err := p.Init(); err != nil {
 		return fmt.Errorf("init product failed, err: %s", err)
 	}
 
@@ -129,11 +132,11 @@ func (zone *Zone) Load() error {
 		return fmt.Errorf("load platforms failed, err: %s", err)
 	}
 
-	if err := product.LoadZone(zone.VarsFile); err != nil {
+	if err := p.LoadZone(zone.VarsFile); err != nil {
 		return fmt.Errorf("load zone vars failed, err: %s", err)
 	}
 
-	zone.Product = product
+	zone.Product = p
 
 	if err := zone.PrepareHelm(); err != nil {
 		return fmt.Errorf("prepare helm failed, err: %s", err)
@@ -143,10 +146,14 @@ func (zone *Zone) Load() error {
 }
 
 func (zone *Zone) Compute() error {
-	if err := zone.CMDB.Compute(zone.Product.Components); err != nil {
-		return fmt.Errorf("compute zone CMDB failed, err: %s", err)
+	//  add or remove cmdb info for component according to whether the component is enabled
+	for componentName, component := range zone.Product.Components {
+		if err := zone.CMDB.Compute(componentName, component.Enabled); err != nil {
+			return fmt.Errorf("compute cmdb for component (%s) failed, err: %s", componentName, err)
+		}
 	}
 
+	// compute the "computed" fields for components of the product
 	if err := zone.Product.Compute(zone.CMDB); err != nil {
 		return fmt.Errorf("compute zone product failed, err: %s", err)
 	}
@@ -290,7 +297,7 @@ func (zone *Zone) RenderComputed() error {
 	return nil
 }
 
-func (zone *Zone) PatchActionHostsMap(m map[string][]ActionHosts) error {
+func (zone *Zone) PatchActionHostsMap(m map[string][]ansible.ActionHosts) error {
 	for groupName, ahs := range m {
 		if !zone.Product.HasComponent(groupName) && groupName != "_cluster" {
 			return fmt.Errorf("not supported component in this product, supported components: %s", zone.Product.ComponentList())
@@ -304,10 +311,10 @@ func (zone *Zone) PatchActionHostsMap(m map[string][]ActionHosts) error {
 	return nil
 }
 
-func (zone *Zone) PatchActionHosts(groupName string, hostsPatch *ActionHosts) {
+func (zone *Zone) PatchActionHosts(groupName string, hostsPatch *ansible.ActionHosts) {
 	if zone.CMDB.Inventory.HasGroup(groupName) {
 		group, _ := zone.CMDB.Inventory.GetGroup(groupName)
-		PatchAnsibleGroup(group, hostsPatch)
+		ansible.PatchAnsibleGroup(group, hostsPatch)
 	} else {
 		if hostsPatch.Action == "delete" {
 			return
@@ -344,19 +351,19 @@ func (zone *Zone) BuildInventory(hostsMap map[string][]string) error {
 
 func (zone *Zone) PlaybookFile(playbookName string) string {
 	if playbookName == "" {
-		playbookName = DefaultPlaybook
+		playbookName = product.DefaultPlaybook
 	}
 
 	if strings.HasSuffix(playbookName, ".yaml") {
-		return path.Join(zone.Product.dir, playbookName)
+		return path.Join(zone.Product.Dir, playbookName)
 	}
 
-	f := path.Join(zone.Product.dir, playbookName+".yaml")
+	f := path.Join(zone.Product.Dir, playbookName+".yaml")
 	if _, err := os.Stat(f); !os.IsNotExist(err) {
 		return f
 	}
 
-	return path.Join(zone.Product.dir, DefaultPlaybookFile)
+	return path.Join(zone.Product.Dir, product.DefaultPlaybookFile)
 }
 
 func (zone *Zone) SetComponentVersion(componentName string, componentVersion string) error {
@@ -388,7 +395,7 @@ func (zone *Zone) LoadPlatforms() error {
 		return fmt.Errorf("read file (%s) failed, err: %s", zone.PlatformsFile, err)
 	}
 
-	i := map[string]Platform{}
+	i := map[string]cmdb.Platform{}
 	if err := yaml.Unmarshal(b, &i); err != nil {
 		return fmt.Errorf("unmarshal platforms failed, err: %s", err)
 	}
@@ -397,7 +404,7 @@ func (zone *Zone) LoadPlatforms() error {
 	return nil
 }
 
-func (zone *Zone) GetK8SForComponent(componentName string) *K8S {
+func (zone *Zone) GetK8SForComponent(componentName string) *cmdb.K8S {
 	if platform, ok := zone.CMDB.Platforms[componentName]; ok {
 		if platform.K8S != nil {
 			return platform.K8S
@@ -410,15 +417,15 @@ func (zone *Zone) GetK8SForComponent(componentName string) *K8S {
 		}
 	}
 
-	return &K8S{}
+	return &cmdb.K8S{}
 }
 
-func (zone *Zone) GetK8SForProduct() *K8S {
+func (zone *Zone) GetK8SForProduct() *cmdb.K8S {
 	if platform, ok := zone.CMDB.Platforms["all"]; ok {
 		if platform.K8S != nil {
 			return platform.K8S
 		}
 	}
 
-	return &K8S{}
+	return &cmdb.K8S{}
 }

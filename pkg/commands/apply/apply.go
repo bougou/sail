@@ -6,6 +6,7 @@ import (
 
 	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/models/target"
 	"github.com/bougou/sail/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -74,7 +75,7 @@ func (o *ApplyOptions) Validate() error {
 func (o *ApplyOptions) Run(args []string) error {
 	options.PrintColorHeader(o.TargetName, o.ZoneName)
 
-	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
+	zone := target.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if err := zone.Load(); err != nil {
 		return err
 	}
@@ -96,7 +97,7 @@ func (o *ApplyOptions) Run(args []string) error {
 		ansiblePlaybookTags = append(ansiblePlaybookTags, ansiblePlaybookTag)
 	}
 
-	rz := models.NewRunningZone(zone, o.Playbook)
+	rz := target.NewRunningZone(zone, o.Playbook)
 	rz.WithServerComponents(serverComponents)
 	rz.WithPodComponents(podComponents)
 	rz.WithAnsiblePlaybookTags(ansiblePlaybookTags)

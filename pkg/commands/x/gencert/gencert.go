@@ -9,6 +9,7 @@ import (
 	"github.com/bougou/gopkg/cert"
 	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/models/target"
 	"github.com/bougou/sail/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -72,7 +73,7 @@ func (o *GenCertOptions) Complete(cmd *cobra.Command, args []string) error {
 			return errors.New(msg)
 		}
 
-		zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
+		zone := target.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 		o.OutputDir = path.Join(zone.ZoneDir, "resources", "certs")
 	}
 	return nil

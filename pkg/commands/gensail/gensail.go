@@ -8,6 +8,7 @@ import (
 
 	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/models/product"
 	"github.com/spf13/cobra"
 )
 
@@ -68,7 +69,7 @@ func (o *GenSailOptions) Validate() error {
 }
 
 func (o *GenSailOptions) Run() error {
-	product := models.NewProduct(o.productName, o.sailOption.ProductsDir)
+	product := product.NewProduct(o.productName, o.sailOption.ProductsDir)
 	if err := product.Init(); err != nil {
 		msg := fmt.Sprintf("product init failed, err: %s", err)
 		return errors.New(msg)

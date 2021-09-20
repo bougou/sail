@@ -1,4 +1,4 @@
-package models
+package product
 
 import (
 	"errors"
@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/bougou/sail/pkg/ansible"
+	"github.com/bougou/sail/pkg/models/cmdb"
 	"github.com/imdario/mergo"
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v3"
@@ -22,14 +23,14 @@ const DefaultPlaybookFile string = "sail.yaml"
 type Product struct {
 	Name string `json:"Name,omitempty"  yaml:"Name,omitempty"`
 
-	// zone vars of product
+	// zone specific vars of product
 	Vars map[string]interface{} `json:"Vars,omitempty" yaml:"Vars,omitempty"`
-	// zone components of product
+	// zone specific components of product
 	Components map[string]*Component `json:"Components,omitempty" yaml:"Components,omitempty"`
 
-	// default DefaultVars of product, it should be read only
+	// default vars of product, it is loaded from products/<productName>/vars.yaml
 	DefaultVars map[string]interface{}
-	// default DefaultComponents of product, it should be read only
+	// default components of product, it is loaded from products/<productName>/{components.yaml,components/*.yaml}
 	DefaultComponents map[string]Component
 
 	// installation order for components, it will be used for auto generating sail ansible playbook
@@ -37,22 +38,22 @@ type Product struct {
 	order []string
 
 	baseDir        string
-	dir            string
+	Dir            string
 	componentsFile string
 	componentsDir  string
 	varsFile       string
 	runFile        string
 	migrateFile    string
 	orderFile      string
-	rolesDir       string
+	RolesDir       string
 
 	defaultPlaybook string
 }
 
-func (p *Product) Compute(cmdb *CMDB) error {
-	for k, c := range p.Components {
-		if err := c.Compute(cmdb); err != nil {
-			msg := fmt.Sprintf("compute product component (%s) failed, err: %s", k, err)
+func (p *Product) Compute(cm *cmdb.CMDB) error {
+	for componentName, component := range p.Components {
+		if err := component.Compute(cm); err != nil {
+			msg := fmt.Sprintf("compute product component (%s) failed, err: %s", componentName, err)
 			return errors.New(msg)
 		}
 	}
@@ -72,14 +73,14 @@ func NewProduct(name string, baseDir string) *Product {
 
 		defaultPlaybook: DefaultPlaybook,
 		baseDir:         baseDir,
-		dir:             path.Join(baseDir, name),
+		Dir:             path.Join(baseDir, name),
 		varsFile:        path.Join(baseDir, name, "vars.yaml"),
 		runFile:         path.Join(baseDir, name, DefaultPlaybookFile),
 		componentsFile:  path.Join(baseDir, name, "components.yaml"),
 		componentsDir:   path.Join(baseDir, name, "components"),
 		migrateFile:     path.Join(baseDir, name, "migrate.yaml"),
 		orderFile:       path.Join(baseDir, name, "order.yaml"),
-		rolesDir:        path.Join(baseDir, name, "roles"),
+		RolesDir:        path.Join(baseDir, name, "roles"),
 	}
 
 	return p
@@ -413,7 +414,7 @@ func (p *Product) LoadZone(zoneVarsFile string) error {
 	return nil
 }
 
-func (p *Product) Check(cmdb *CMDB) error {
+func (p *Product) Check(cm *cmdb.CMDB) error {
 	errs := []error{}
 	for _, c := range p.Components {
 		if err := c.Check(); err != nil {
@@ -431,7 +432,7 @@ func (p *Product) Check(cmdb *CMDB) error {
 	}
 
 	// Todo call checkPortsConflict
-	if err := p.checkPortsConflict(cmdb); err != nil {
+	if err := p.checkPortsConflict(cm); err != nil {
 		errmsg := "check port conflict failed"
 		errmsgs = append(errmsgs, errmsg)
 	}
@@ -443,7 +444,7 @@ func (p *Product) Check(cmdb *CMDB) error {
 // checkPortsConflict
 // Todo
 // if multiple components are installed on same hosts, the listened ports of those components may be conflicted.
-func (p *Product) checkPortsConflict(cmdb *CMDB) error {
+func (p *Product) checkPortsConflict(cm *cmdb.CMDB) error {
 	return nil
 }
 

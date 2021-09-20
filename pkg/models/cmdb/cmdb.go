@@ -1,4 +1,4 @@
-package models
+package cmdb
 
 import (
 	"path"
@@ -23,7 +23,7 @@ type K8S struct {
 	Namespace   string `yaml:"namespace"`
 }
 
-func expandTilde(pathstr string) string {
+func ExpandTilde(pathstr string) string {
 	if strings.HasPrefix(pathstr, "~") {
 		home, err := homedir.Dir()
 		if err != nil {
@@ -55,24 +55,20 @@ func (c *CMDB) GetHostsForComponent(name string) []string {
 	return g.HostsList()
 }
 
-func (c *CMDB) Compute(components map[string]*Component) error {
-
-	for compKey, compValue := range components {
-		if !compValue.Enabled {
-			c.Inventory.RemoveGroup(compKey)
-			continue
-		}
-
-		if c.Inventory.HasGroup(compKey) {
-			continue
-		}
-
-		compHosts := c.determineHostsForComponent(compKey)
-		group := ansible.NewGroup(compKey)
-		group.AddHosts(compHosts...)
-		c.Inventory.AddGroup(group)
+func (c *CMDB) Compute(componentName string, componentEnabled bool) error {
+	if !componentEnabled {
+		c.Inventory.RemoveGroup(componentName)
+		return nil
 	}
-	return nil
+
+	if c.Inventory.HasGroup(componentName) {
+		return nil
+	}
+
+	compHosts := c.determineHostsForComponent(componentName)
+	group := ansible.NewGroup(componentName)
+	group.AddHosts(compHosts...)
+	return c.Inventory.AddGroup(group)
 }
 
 // Todo, recursively

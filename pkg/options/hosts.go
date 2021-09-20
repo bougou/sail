@@ -5,40 +5,41 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/ansible"
 )
 
-// ParseHostsOption parses --hosts options and interprets them as a map,
+// ParseHostsOptions parses --hosts options and interprets them as a map,
 // key is component name, value is a list of ActionHosts.
+// The returned map can be used to update cmdb inventory.
 //
 // eg options:
-//   --hosts A,B/10.0.0.1,10.0.0.2 --hosts +C/10.0.0.3,10.0.0.4 --hosts -C,D,E/10.0.0.4
+//    --hosts A,B/10.0.0.1,10.0.0.2 --hosts +C/10.0.0.3,10.0.0.4 --hosts -C,D,E/10.0.0.4
 //
 // result:
 //
-// {
-//   "A": [
-//     { "Aciton": "update", "Hosts": ["10.0.0.1", "10.0.0.2"] },
-//   ],
-//   "B": [
-//     { "Aciton": "update", "Hosts": ["10.0.0.1", "10.0.0.2"] },
-//   ],
-//   "C": [
-//     { "Aciton": "add", "Hosts": ["10.0.0.3", "10.0.0.4"] },
-//     { "Aciton": "remove", "Hosts": ["10.0.0.4"] },
-//   ],
-//   "D": [
-//     { "Aciton": "remove", "Hosts": ["10.0.0.4"] },
-//   ],
-//   "E": [
-//     { "Aciton": "remove", "Hosts": ["10.0.0.4"] },
-//   ],
-// }
-func ParseHostsOption(hosts []string) (map[string][]models.ActionHosts, error) {
-	out := make(map[string][]models.ActionHosts)
+//    {
+//      "A": [
+//        { "Aciton": "update", "Hosts": ["10.0.0.1", "10.0.0.2"] },
+//      ],
+//      "B": [
+//        { "Aciton": "update", "Hosts": ["10.0.0.1", "10.0.0.2"] },
+//      ],
+//      "C": [
+//        { "Aciton": "add", "Hosts": ["10.0.0.3", "10.0.0.4"] },
+//        { "Aciton": "remove", "Hosts": ["10.0.0.4"] },
+//      ],
+//      "D": [
+//        { "Aciton": "remove", "Hosts": ["10.0.0.4"] },
+//      ],
+//      "E": [
+//        { "Aciton": "remove", "Hosts": ["10.0.0.4"] },
+//      ],
+//    }
+func ParseHostsOptions(hostsOptions []string) (map[string][]ansible.ActionHosts, error) {
+	out := make(map[string][]ansible.ActionHosts)
 
-	for _, hostsOpt := range hosts {
-		ah := models.ActionHosts{}
+	for _, hostsOpt := range hostsOptions {
+		ah := ansible.ActionHosts{}
 
 		var action string
 		if strings.HasPrefix(hostsOpt, "-") {
@@ -58,7 +59,7 @@ func ParseHostsOption(hosts []string) (map[string][]models.ActionHosts, error) {
 			ah.Hosts = strings.Split(s[0], ",")
 			componentName := "_cluster"
 			if _, exists := out[componentName]; !exists {
-				out[componentName] = make([]models.ActionHosts, 0)
+				out[componentName] = make([]ansible.ActionHosts, 0)
 			}
 			out[componentName] = append(out[componentName], ah)
 		case 2:
@@ -66,7 +67,7 @@ func ParseHostsOption(hosts []string) (map[string][]models.ActionHosts, error) {
 			for _, componentName := range strings.Split(componentNames, ",") {
 				ah.Hosts = strings.Split(hostsStr, ",")
 				if _, exists := out[componentName]; !exists {
-					out[componentName] = make([]models.ActionHosts, 0)
+					out[componentName] = make([]ansible.ActionHosts, 0)
 				}
 				out[componentName] = append(out[componentName], ah)
 			}

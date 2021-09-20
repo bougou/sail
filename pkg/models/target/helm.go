@@ -1,4 +1,4 @@
-package models
+package target
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"github.com/bougou/gopkg/common"
 	"github.com/bougou/gopkg/copy"
 	"github.com/bougou/gopkg/merge"
+	"github.com/bougou/sail/pkg/models/product"
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,7 +30,7 @@ func (zone *Zone) HelmDirOfComponent(componentName string) string {
 
 // PrepareHelm prepares helm chart(s) for zone.
 func (zone *Zone) PrepareHelm() error {
-	podComponentsEnabled := zone.Product.ComponentListWithFilterOptionsAnd(FilterOptionEnabled, FilterOptionFormPod)
+	podComponentsEnabled := zone.Product.ComponentListWithFilterOptionsAnd(product.FilterOptionEnabled, product.FilterOptionFormPod)
 	if len(podComponentsEnabled) == 0 {
 		return nil
 	}
@@ -54,7 +55,7 @@ func (zone *Zone) PrepareHelmCharts() error {
 
 	// prepare the global values.yaml even when sail_helm_mode is set to "component".
 	// the global values.yaml for zone is put under `zone.HelmDir`
-	productValuesFile := path.Join(zone.Product.dir, "values.yaml")
+	productValuesFile := path.Join(zone.Product.Dir, "values.yaml")
 	zoneValuesFile := path.Join(zone.HelmDir, "values.yaml")
 	if _, err := os.Stat(productValuesFile); err == nil {
 		if err := mergeYamlFiles(zoneValuesFile, productValuesFile); err != nil {
@@ -62,7 +63,7 @@ func (zone *Zone) PrepareHelmCharts() error {
 		}
 	}
 
-	for _, componentName := range zone.Product.ComponentListWithFilterOptionsAnd(FilterOptionFormPod, FilterOptionEnabled) {
+	for _, componentName := range zone.Product.ComponentListWithFilterOptionsAnd(product.FilterOptionFormPod, product.FilterOptionEnabled) {
 		if err := zone.prepareComponentChart(componentName); err != nil {
 			return fmt.Errorf("prepare chart for component (%s) failed, err: %s", componentName, err)
 		}
@@ -80,7 +81,7 @@ func (zone *Zone) prepareComponentChart(componentName string) error {
 	}
 	roleName := component.GetRoleName()
 
-	roleDir := path.Join(zone.Product.rolesDir, roleName)
+	roleDir := path.Join(zone.Product.RolesDir, roleName)
 	roleChartDir := path.Join(roleDir, "helm", componentName)
 	zoneComponentChartDir := zone.HelmDirOfComponent(componentName)
 
@@ -166,7 +167,7 @@ func (zone *Zone) PrepareHelmChart() error {
 		return fmt.Errorf("prepare chart CRDs for product failed, err: %s", err)
 	}
 
-	productChartFile := path.Join(zone.Product.dir, "Chart.yaml")
+	productChartFile := path.Join(zone.Product.Dir, "Chart.yaml")
 	zoneProductChartFile := path.Join(zone.HelmDirOfProduct(), "Chart.yaml")
 	if err := copy.CopyFile(productChartFile, zoneProductChartFile); err != nil {
 		return fmt.Errorf("copy Chart.yaml failed, err: %s", err)
@@ -175,7 +176,7 @@ func (zone *Zone) PrepareHelmChart() error {
 	// prepare the global values.yaml file IF EXISTS.
 	// the global values.yaml for zone is put under `zone.HelmDir`.
 	// the global values.yaml is OPTIONAL.
-	productChartValuesFile := path.Join(zone.Product.dir, "values.yaml")
+	productChartValuesFile := path.Join(zone.Product.Dir, "values.yaml")
 	zoneProductChartValuesFile := path.Join(zone.HelmDir, "values.yaml")
 	if _, err := os.Stat(productChartValuesFile); err == nil {
 		if err := mergeYamlFiles(zoneProductChartValuesFile, productChartValuesFile); err != nil {
@@ -204,7 +205,7 @@ func (zone *Zone) PrepareHelmChart() error {
 //
 // The component level template dst file may overrite the global template dst file.
 func (zone *Zone) prepareProductChartTemplates() error {
-	productChartTemplatesDir := path.Join(zone.Product.dir, "templates")
+	productChartTemplatesDir := path.Join(zone.Product.Dir, "templates")
 	zoneChartTemplatesDir := path.Join(zone.HelmDirOfProduct(), "templates")
 	if err := os.RemoveAll(zoneChartTemplatesDir); err != nil {
 		return fmt.Errorf("clear templates dir failed, err: %s", err)
@@ -220,11 +221,11 @@ func (zone *Zone) prepareProductChartTemplates() error {
 		}
 	}
 
-	for _, componentName := range zone.Product.ComponentListWithFilterOptionsAnd(FilterOptionFormPod, FilterOptionEnabled) {
+	for _, componentName := range zone.Product.ComponentListWithFilterOptionsAnd(product.FilterOptionFormPod, product.FilterOptionEnabled) {
 		component := zone.Product.Components[componentName]
 
 		roleName := component.GetRoleName()
-		roleDir := path.Join(zone.Product.rolesDir, roleName)
+		roleDir := path.Join(zone.Product.RolesDir, roleName)
 		roleHelmTemplatesDir := path.Join(roleDir, "helm", "templates")
 
 		filepath.WalkDir(roleHelmTemplatesDir, func(filepath string, entry fs.DirEntry, err error) error {
@@ -261,7 +262,7 @@ func (zone *Zone) prepareProductChartTemplates() error {
 //
 // The component level CRD dst file may overrite the global CRD dst file.
 func (zone *Zone) prepareProductChartCRDs() error {
-	productChartCRDsDir := path.Join(zone.Product.dir, "crds")
+	productChartCRDsDir := path.Join(zone.Product.Dir, "crds")
 	zoneChartCRDsDir := path.Join(zone.HelmDirOfProduct(), "crds")
 	if err := os.RemoveAll(zoneChartCRDsDir); err != nil {
 		return fmt.Errorf("clear crds dir failed, err: %s", err)
@@ -277,11 +278,11 @@ func (zone *Zone) prepareProductChartCRDs() error {
 		}
 	}
 
-	for _, componentName := range zone.Product.ComponentListWithFitlerOptionsOr(FilterOptionFormPod) {
+	for _, componentName := range zone.Product.ComponentListWithFitlerOptionsOr(product.FilterOptionFormPod) {
 		component := zone.Product.Components[componentName]
 
 		roleName := component.GetRoleName()
-		roleDir := path.Join(zone.Product.rolesDir, roleName)
+		roleDir := path.Join(zone.Product.RolesDir, roleName)
 		roleHelmCRDsDir := path.Join(roleDir, "helm", "crds")
 
 		filepath.WalkDir(roleHelmCRDsDir, func(filepath string, entry fs.DirEntry, err error) error {

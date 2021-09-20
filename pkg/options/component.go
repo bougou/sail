@@ -5,65 +5,57 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/models/product"
+	"github.com/bougou/sail/pkg/models/target"
 )
 
-// ParseComponentOption parses --component options and interprets them as a map of components.
-// key is component name, value is componentVersion
+// ParseComponentsOption parses --component options and interprets them as map of components.
 //
 // eg options:
-// --component A/v1.2.3 --component B/v0.0.2
-//
+//   --component A                     # only specify componentName
+//   --component B/v0.0.1              # specify componentName/componentVersion
+//   --component C/v0.0.2,D/v0.0.3     # sepcify multiple components with comma separated
+//   --component E/v1.2.3/831212f      # specify componentName/componentVersion/componentLongVersion
 // result:
 //
-// {
-//   "A": "v1.2.3"
-//   "B": "v0.0.2"
-// }
-func ParseComponentOption(components []string) (map[string]string, error) {
+//   {
+//     "A": "",
+//     "B": "v0.0.1",
+//     "C": "v0.0.2",
+//     "D": "v0.0.3",
+//     "E": "831212f"
+//   }
+func ParseComponentsOption(componentsOptions []string) (map[string]string, error) {
 	out := make(map[string]string)
 
-	for _, componentOpt := range components {
-		s := strings.Split(componentOpt, "/")
-		switch l := len(s); l {
-		case 1:
-			componentName := s[0]
-			out[componentName] = ""
-		case 2:
-			componentName, componentVersion := s[0], s[1]
-			out[componentName] = componentVersion
-		case 3:
-			componentName, _, componentGitVersion := s[0], s[1], s[2]
-			out[componentName] = componentGitVersion
-		default:
-			msg := fmt.Sprintf("wrong --component option value, %s", componentOpt)
-			return nil, errors.New(msg)
+	for _, componentsOption := range componentsOptions {
+		componentOpts := strings.Split(componentsOption, ",")
+
+		for _, componentOpt := range componentOpts {
+			s := strings.Split(componentOpt, "/")
+			switch l := len(s); l {
+			case 1:
+				componentName := s[0]
+				out[componentName] = ""
+			case 2:
+				componentName, componentVersion := s[0], s[1]
+				out[componentName] = componentVersion
+			case 3:
+				componentName, _, componentLongVersion := s[0], s[1], s[2]
+				out[componentName] = componentLongVersion
+			default:
+				msg := fmt.Sprintf("wrong --component option value, %s", componentOpt)
+				return nil, errors.New(msg)
+			}
 		}
+
 	}
 
 	return out, nil
 }
 
-// ParseComponentOption parses --components options and interprets them as a list of components.
-// The value of --components option can be comma joined component names
-// eg options:
-// --components A,B --components C
-//
-// result:
-// [A, B, C]
-func ParseComponentsOption(components []string) []string {
-	out := []string{}
-
-	for _, componentsOpt := range components {
-		s := strings.Split(componentsOpt, ",")
-		out = append(out, s...)
-	}
-
-	return out
-}
-
-func ParseChoosedComponents(zone *models.Zone, components []string, ansible bool, helm bool) (map[string]string, map[string]string, error) {
-	m, err := ParseComponentOption(components)
+func ParseChoosedComponents(zone *target.Zone, components []string, ansible bool, helm bool) (map[string]string, map[string]string, error) {
+	m, err := ParseComponentsOption(components)
 	if err != nil {
 		return nil, nil, fmt.Errorf("parse choosed components failed, err: %s", err)
 	}
@@ -75,7 +67,7 @@ func ParseChoosedComponents(zone *models.Zone, components []string, ansible bool
 	}
 
 	if ansible {
-		serverComponents := zone.Product.ComponentListWithFitlerOptionsOr(models.FilterOptionFormServer)
+		serverComponents := zone.Product.ComponentListWithFitlerOptionsOr(product.FilterOptionFormServer)
 		for _, serverComponent := range serverComponents {
 			if _, exists := m[serverComponent]; !exists {
 				m[serverComponent] = ""
@@ -83,7 +75,7 @@ func ParseChoosedComponents(zone *models.Zone, components []string, ansible bool
 		}
 	}
 	if helm {
-		podComponents := zone.Product.ComponentListWithFitlerOptionsOr(models.FilterOptionFormPod)
+		podComponents := zone.Product.ComponentListWithFitlerOptionsOr(product.FilterOptionFormPod)
 		for _, podComponent := range podComponents {
 			if _, exists := m[podComponent]; !exists {
 				m[podComponent] = ""
@@ -101,9 +93,9 @@ func ParseChoosedComponents(zone *models.Zone, components []string, ansible bool
 				return nil, nil, fmt.Errorf("not found component (%s) in zone", k)
 			}
 			switch component.Form {
-			case models.ComponentFormServer:
+			case product.ComponentFormServer:
 				serverComponents[k] = v
-			case models.ComponentFormPod:
+			case product.ComponentFormPod:
 				podComponents[k] = v
 			default:
 				serverComponents[k] = v

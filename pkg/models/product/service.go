@@ -1,9 +1,11 @@
-package models
+package product
 
 import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/bougou/sail/pkg/models/cmdb"
 )
 
 // Service represents the service exposed by component.
@@ -98,17 +100,17 @@ func NewServiceComputed() *ServiceComputed {
 }
 
 // Compute return a ServiceComputed for this service.
-func (s *Service) Compute(external bool, cmdb *CMDB) (*ServiceComputed, error) {
+func (s *Service) Compute(external bool, cm *cmdb.CMDB) (*ServiceComputed, error) {
 	if external {
 		return s.computeExternal()
 	}
 
-	return s.computeNonExternal(cmdb)
+	return s.computeNonExternal(cm)
 }
 
 // computeNonExternal returns ServiceComputed.
 // It should be used for component with external set to false.
-func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
+func (s *Service) computeNonExternal(cm *cmdb.CMDB) (*ServiceComputed, error) {
 	svcComputed := NewServiceComputed()
 
 	scheme := ""
@@ -132,8 +134,8 @@ func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
 		host = s.IPv6
 		goto SETHOST
 	}
-	if cmdb.Inventory.HasGroup(s.ComponentName) {
-		g, err := cmdb.Inventory.GetGroup(s.ComponentName)
+	if cm.Inventory.HasGroup(s.ComponentName) {
+		g, err := cm.Inventory.GetGroup(s.ComponentName)
 		if err != nil {
 			return nil, fmt.Errorf("get component (%s) from inventory failed, err: %s", s.ComponentName, err)
 		}
@@ -178,8 +180,8 @@ SETHOST:
 	svcComputed.Path = path
 
 	hosts := []string{}
-	if cmdb.Inventory.HasGroup(s.ComponentName) {
-		g, err := cmdb.Inventory.GetGroup(s.ComponentName)
+	if cm.Inventory.HasGroup(s.ComponentName) {
+		g, err := cm.Inventory.GetGroup(s.ComponentName)
 		if err != nil {
 			return nil, fmt.Errorf("get component (%s) from inventory failed, err: %s", s.ComponentName, err)
 		}

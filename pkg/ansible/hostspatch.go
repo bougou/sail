@@ -1,13 +1,14 @@
-package models
+package ansible
 
-import "github.com/bougou/sail/pkg/ansible"
-
+// ActionHosts wrapps the Action and Hosts list.
+// Action can be "add", "remove", "update".
+// Hosts is a list of host addresses.
 type ActionHosts struct {
 	Action string
 	Hosts  []string
 }
 
-func PatchAnsibleGroup(g *ansible.Group, ah *ActionHosts) {
+func PatchAnsibleGroup(g *Group, ah *ActionHosts) {
 	switch ah.Action {
 	case "add":
 		g.AddHosts(ah.Hosts...)

@@ -7,6 +7,8 @@ import (
 
 	"github.com/bougou/gopkg/common"
 	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/models/cmdb"
+	"github.com/bougou/sail/pkg/models/target"
 	"github.com/bougou/sail/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -96,13 +98,13 @@ func (o *ConfCreateOptions) Validate() error {
 func (o *ConfCreateOptions) Run() error {
 	options.PrintColorHeader(o.TargetName, o.ZoneName)
 
-	zone := models.NewZone(o.sailOption, o.TargetName, o.ZoneName)
+	zone := target.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if _, err := os.Stat(zone.ZoneDir); !os.IsNotExist(err) {
 		msg := fmt.Sprintf("target/zone (%s/%s) already exists, found zone dir: %s, remove the dir if you want to recreate the zone", o.TargetName, o.ZoneName, zone.ZoneDir)
 		return errors.New(msg)
 	}
 
-	zone.ZoneMeta = &models.ZoneMeta{
+	zone.ZoneMeta = &target.ZoneMeta{
 		SailProduct:  o.ProductName,
 		SailHelmMode: "component",
 	}
@@ -112,14 +114,14 @@ func (o *ConfCreateOptions) Run() error {
 		return errors.New(msg)
 	}
 
-	m, err := options.ParseHostsOption(o.Hosts)
+	m, err := options.ParseHostsOptions(o.Hosts)
 	if err != nil {
 		msg := fmt.Sprintf("parse hosts option failed, err: %s", err)
 		return errors.New(msg)
 	}
 
-	platform := models.Platform{
-		K8S: &models.K8S{
+	platform := cmdb.Platform{
+		K8S: &cmdb.K8S{
 			KubeConfig:  o.KubeConfig,
 			KubeContext: o.KubeContext,
 			Namespace:   o.Namespace,

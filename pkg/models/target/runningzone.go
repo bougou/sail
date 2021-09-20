@@ -1,4 +1,4 @@
-package models
+package target
 
 import (
 	"context"
@@ -13,6 +13,8 @@ import (
 
 	newexec "github.com/bougou/gopkg/exec"
 	"github.com/bougou/sail/pkg/ansible"
+	"github.com/bougou/sail/pkg/models/cmdb"
+	"github.com/bougou/sail/pkg/models/product"
 )
 
 //go:embed ansible.cfg
@@ -202,7 +204,7 @@ func (rz *RunningZone) RunAnsiblePlaybook(args []string) error {
 func (rz *RunningZone) RunHelm(args []string) error {
 	switch rz.zone.SailHelmMode {
 	case SailHelmModeComponent:
-		for _, componentName := range rz.zone.Product.ComponentListWithFilterOptionsAnd(FilterOptionEnabled, FilterOptionFormPod) {
+		for _, componentName := range rz.zone.Product.ComponentListWithFilterOptionsAnd(product.FilterOptionEnabled, product.FilterOptionFormPod) {
 			helmRelease := fmt.Sprintf("%s-%s", rz.zone.SailProduct, componentName)
 			helmChartDir := rz.zone.HelmDirOfComponent(componentName)
 			k8s := rz.zone.GetK8SForComponent(componentName)
@@ -255,7 +257,7 @@ func (rz *RunningZone) RunHelm(args []string) error {
 	return nil
 }
 
-func (rz *RunningZone) helmCmd(release string, chartDir string, k8s *K8S, valuesFiles []string, args ...string) error {
+func (rz *RunningZone) helmCmd(release string, chartDir string, k8s *cmdb.K8S, valuesFiles []string, args ...string) error {
 	helmArgs := []string{
 		"upgrade",
 		release,
@@ -268,7 +270,7 @@ func (rz *RunningZone) helmCmd(release string, chartDir string, k8s *K8S, values
 			helmArgs = append(helmArgs, "--kube-context", k8s.KubeContext)
 		}
 		if k8s.KubeConfig != "" {
-			helmArgs = append(helmArgs, "--kubeconfig", expandTilde(k8s.KubeConfig))
+			helmArgs = append(helmArgs, "--kubeconfig", cmdb.ExpandTilde(k8s.KubeConfig))
 		}
 		if k8s.Namespace != "" {
 			helmArgs = append(helmArgs, "--namespace", k8s.Namespace)

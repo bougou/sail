@@ -1,4 +1,4 @@
-package models
+package product
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bougou/sail/pkg/ansible"
+	"github.com/bougou/sail/pkg/models/cmdb"
 	"gopkg.in/yaml.v3"
 )
 
@@ -140,10 +141,10 @@ func (c *Component) Check() error {
 	return errors.New(msg)
 }
 
-func (c *Component) Compute(cmdb *CMDB) error {
+func (c *Component) Compute(cm *cmdb.CMDB) error {
 	// Todo
 	for svcName, svc := range c.Services {
-		svcComputed, err := svc.Compute(c.External, cmdb)
+		svcComputed, err := svc.Compute(c.External, cm)
 		if err != nil {
 			msg := fmt.Sprintf("compute service (%s) failed, err: %s", svcName, err)
 			return errors.New(msg)

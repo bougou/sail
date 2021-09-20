@@ -1,15 +1,17 @@
-package models
+package target
 
 import (
 	"fmt"
 	"os"
 	"path"
+
+	"github.com/bougou/sail/pkg/models"
 )
 
 type Target struct {
 	Name string
 
-	sailOption *SailOption
+	sailOption *models.SailOption
 	dir        string
 	vars       *TargetVars
 }
@@ -24,7 +26,7 @@ func NewTargetVars() *TargetVars {
 	}
 }
 
-func NewTarget(sailOption *SailOption, name string) *Target {
+func NewTarget(sailOption *models.SailOption, name string) *Target {
 	return &Target{
 		Name: name,
 
