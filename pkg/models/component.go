@@ -197,12 +197,6 @@ func newComponentFromValue(componentName string, componentValue interface{}) (*C
 		return nil, errors.New(msg)
 	}
 
-	if c.Enabled && c.External {
-		msg := fmt.Sprintf("warn: Enabled and External of component can not be both true, automatically set Enabled to false for component (%s)", componentName)
-		fmt.Println(msg)
-		c.Enabled = false
-	}
-
 	for svcName, s := range c.Services {
 		b, err := yaml.Marshal(s)
 		if err != nil {

@@ -27,10 +27,11 @@ type Product struct {
 	// zone components of product
 	Components map[string]*Component `json:"Components,omitempty" yaml:"Components,omitempty"`
 
-	// default vars of product, it should be read only
-	vars map[string]interface{}
-	// default components of product, it should be read only
-	components map[string]Component
+	// default DefaultVars of product, it should be read only
+	DefaultVars map[string]interface{}
+	// default DefaultComponents of product, it should be read only
+	DefaultComponents map[string]Component
+
 	// installation order for components, it will be used for auto generating sail ansible playbook
 	// it will be filled by product order.yaml file.
 	order []string
@@ -65,9 +66,9 @@ func NewProduct(name string, baseDir string) *Product {
 		Components: make(map[string]*Component),
 		Vars:       make(map[string]interface{}),
 
-		components: make(map[string]Component),
-		vars:       make(map[string]interface{}),
-		order:      make([]string, 0),
+		DefaultComponents: make(map[string]Component),
+		DefaultVars:       make(map[string]interface{}),
+		order:             make([]string, 0),
 
 		defaultPlaybook: DefaultPlaybook,
 		baseDir:         baseDir,
@@ -238,7 +239,7 @@ func (p *Product) GenSail() (ansible.Playbook, error) {
 	out = append(out, *gatherFactsPlay)
 
 	for _, compName := range p.order {
-		c, exists := p.components[compName]
+		c, exists := p.DefaultComponents[compName]
 		if !exists {
 			return nil, fmt.Errorf("component (%s) does not declared by product (%s)", compName, p.Name)
 		}
@@ -264,13 +265,13 @@ func (p *Product) loadDefaultVars() error {
 		return err
 	}
 
-	if err := yaml.Unmarshal(b, &p.vars); err != nil {
+	if err := yaml.Unmarshal(b, &p.DefaultVars); err != nil {
 		msg := fmt.Sprintf("unmarshal vars for product (%s) failed, err: %s", p.Name, err)
 		return errors.New(msg)
 	}
 
 	m := make(map[string]interface{})
-	if err := copier.Copy(&m, p.vars); err != nil {
+	if err := copier.Copy(&m, p.DefaultVars); err != nil {
 		msg := fmt.Sprintf("copy default vars failed, err: %s", err)
 		return errors.New(msg)
 	}
@@ -280,14 +281,19 @@ func (p *Product) loadDefaultVars() error {
 	return nil
 }
 
+// loadDefaultComponents will fill p.DefaultComponents with product operation code,
+// and copy p.DefaultComponents to p.Components
 func (p *Product) loadDefaultComponents() error {
+	// componentFiles will holds
+	// - the components.yaml if exist
+	// - components/*.yaml
 	componentFiles := []string{}
 
 	if _, err := os.Stat(p.componentsFile); err == nil {
 		componentFiles = append(componentFiles, p.componentsFile)
 	}
 
-	// store all found component yaml files under components directory
+	// store all found *.yaml files under components directory
 	visitFn := func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -317,9 +323,9 @@ func (p *Product) loadDefaultComponents() error {
 		return errors.New(errString)
 	}
 
-	// After loading all components.yaml, copy p.components to p.Components
+	// After loading all components.yaml, copy p.DefaultComponents to p.Components
 	var c map[string]*Component
-	if err := copier.CopyWithOption(&c, p.components, copier.Option{DeepCopy: true}); err != nil {
+	if err := copier.CopyWithOption(&c, p.DefaultComponents, copier.Option{DeepCopy: true}); err != nil {
 		msg := fmt.Sprintf("copy default components failed, err: %s", err)
 		return errors.New(msg)
 	}
@@ -342,7 +348,7 @@ func (p *Product) loadComponentFile(file string) error {
 	}
 
 	for k, v := range m {
-		if _, exists := p.components[k]; exists {
+		if _, exists := p.DefaultComponents[k]; exists {
 			msg := fmt.Sprintf("found duplicate component definition for component(%s)", k)
 			return errors.New(msg)
 		}
@@ -351,7 +357,12 @@ func (p *Product) loadComponentFile(file string) error {
 		if err != nil {
 			return err
 		}
-		p.components[k] = *c
+
+		// check component declaration
+		if c.Enabled && c.External {
+			return fmt.Errorf("warn: enabled and external of component (%s) can not be both true,file (%s)", k, file)
+		}
+		p.DefaultComponents[k] = *c
 	}
 
 	return nil
@@ -382,12 +393,21 @@ func (p *Product) LoadZone(zoneVarsFile string) error {
 			return err
 		}
 
+		// Todo, optimize the merge behaviour
 		// p.Components originally stores default components of the product,
 		// now we merge the component value loaded from zone vars file into it.
-		if mergo.Merge(p.Components[varKey], comp, mergo.WithOverride); err != nil {
+		if mergo.Merge(p.Components[varKey], comp, mergo.WithOverride, mergo.WithOverwriteWithEmptyValue); err != nil {
 			msg := fmt.Sprintf("merge failed for component (%s) failed, err: %s", varKey, err)
 			return errors.New(msg)
 		}
+
+		c := p.Components[varKey]
+		if c.Enabled && c.External {
+			msg := fmt.Sprintf("234: enabled and external of component can not be both true, automatically set enabled to false for component (%s)", varKey)
+			fmt.Println(msg)
+			c.Enabled = false
+		}
+
 	}
 
 	return nil
@@ -446,7 +466,7 @@ func (p *Product) loadOrder() error {
 	}
 
 	for _, v := range order {
-		if _, exists := p.components[v]; !exists {
+		if _, exists := p.DefaultComponents[v]; !exists {
 			return fmt.Errorf("component (%s) in order.yaml file does not declared by product (%s)", v, p.Name)
 		}
 	}
