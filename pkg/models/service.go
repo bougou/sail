@@ -106,6 +106,8 @@ func (s *Service) Compute(external bool, cmdb *CMDB) (*ServiceComputed, error) {
 	return s.computeNonExternal(cmdb)
 }
 
+// computeNonExternal returns ServiceComputed.
+// It should be used for component with external set to false.
 func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
 	svcComputed := NewServiceComputed()
 
@@ -120,18 +122,28 @@ func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
 	host := ""
 	if s.Host != "" {
 		host = s.Host
-	} else {
-		if cmdb.Inventory.HasGroup(s.ComponentName) {
-			g, err := cmdb.Inventory.GetGroup(s.ComponentName)
-			if err != nil {
-				return nil, fmt.Errorf("get component (%s) from inventory failed, err: %s", s.ComponentName, err)
-			}
-			hosts := g.HostsList()
-			if len(hosts) > 0 {
-				host = hosts[0]
-			}
+		goto SETHOST
+	}
+	if s.IPv4 != "" {
+		host = s.IPv4
+		goto SETHOST
+	}
+	if s.IPv6 != "" {
+		host = s.IPv6
+		goto SETHOST
+	}
+	if cmdb.Inventory.HasGroup(s.ComponentName) {
+		g, err := cmdb.Inventory.GetGroup(s.ComponentName)
+		if err != nil {
+			return nil, fmt.Errorf("get component (%s) from inventory failed, err: %s", s.ComponentName, err)
+		}
+		hosts := g.HostsList()
+		if len(hosts) > 0 {
+			host = hosts[0]
+			goto SETHOST
 		}
 	}
+SETHOST:
 	if host == "" {
 		host = "127.0.0.1"
 	}
@@ -219,7 +231,8 @@ func (s *Service) computeNonExternal(cmdb *CMDB) (*ServiceComputed, error) {
 	return svcComputed, nil
 }
 
-// computeExternal returns ServiceComputed
+// computeExternal returns ServiceComputed.
+// It should be used for component with external set to true.
 func (s *Service) computeExternal() (*ServiceComputed, error) {
 	svcComputed := NewServiceComputed()
 
@@ -234,9 +247,24 @@ func (s *Service) computeExternal() (*ServiceComputed, error) {
 	var host string
 	if s.Host != "" {
 		host = s.Host
-	} else {
-		host = "127.0.0.1"
 	}
+	if s.Host != "" {
+		host = s.Host
+		goto SETHOST
+	}
+	if s.IPv4 != "" {
+		host = s.IPv4
+		goto SETHOST
+	}
+	if s.IPv6 != "" {
+		host = s.IPv6
+		goto SETHOST
+	}
+	if host == "" {
+		host = "127.0.0.1"
+		goto SETHOST
+	}
+SETHOST:
 	svcComputed.Host = host
 
 	svcComputed.Port = s.Port

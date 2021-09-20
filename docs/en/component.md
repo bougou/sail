@@ -110,15 +110,15 @@ foobar-cache:
 ```
 
 The `components.yaml` file or any files with suffix `.yaml` under `components` directory can be used to declare components.
-The files under `components` has no actual meanings.
+The names of the files under `components` directory have no actual meanings.
 
-The names of components are infered from the top-level keys in yaml files.
+The names of components are infered from the top-level keys of the yaml files.
 
 When naming components, you have to make sure they are not conflict with the variables defined in `vars.yaml`.
 
 ## Component Implementation
 
-The component implementations are the real Ansible and/or Helm code for the component.
+The component implementations are the real Ansible and/or Helm code for the component. It's your responsibility to develop ansible role or helm chart for the component.
 
 The `products/<productName>/roles` directory holds the implementations for each product. Generally, you will develop a corresponding role for each component of the product under `products/<productName>/roles` directory.
 
@@ -154,12 +154,12 @@ Sail's role directory of component is based on [Ansible Role](https://docs.ansib
   # any-other-files-or-dirs
 ```
 
-## Explanation for declaring components
+## Component Declaration Explanation
 
-### Component deploy formation
+### Component deploy mechanism
 
-Component(s) can be deployed to normal servers as or deployed to K8S platforms.
-According to deployment mechanism, we can call the components as "container/pod component" or "normal/server component".
+Component(s) can be deployed to normal servers or deployed to K8S platforms.
+According to the deployment mechanism, we can call the components as "normal/server component" or "container/pod component".
 
 ```yaml
 componentName:
@@ -169,6 +169,13 @@ componentName:
 
 Sail currently supports using Ansible Role to deploy normal components and using Helm Chart to deploy pod components.
 
+In your operation code of the component, you can make both the ansible role and the helm chart be prepared.
+Thus, the operator can choose which method is used to deploy the component for a specific environment.
+But still you can ONLY provide ansible role OR helm chart for the component as your wish.
+
+When running sail commands like `sail upgrade -c <componentName>`, `sail`
+will automatically runs `ansible-playbook` or `helm` for the component according to the `form` field.
+
 - [Develop Ansible Role](./ansible.md)
 - [Develop Helm Chart](./helm.md)
 
@@ -177,9 +184,9 @@ Sail currently supports using Ansible Role to deploy normal components and using
 - `enabled` means whether to deploy the component in the target environment.
 - `external` means whether the component is provided by external system or platform.
 
-Suppose you product uses MySQL, so you have to declare one component for MySQL. Let's say you named this component as "mysql".
+Suppose your product uses MySQL, so you have to declare one component for MySQL. Let's say you named this component as "mysql".
 
-When deploying the product, there are different choices for "mysql" component as to the different target envionments.
+When deploying the product, there are different choices for "mysql" component for different target envionments.
 
 - You can directly use mysql instance purchased from cloud provider on public cloud environment, like AWS RDS.
 - You may want to deploy a mysql cluster using some plain servers.
@@ -191,7 +198,7 @@ When you want to deploy the component yourself, you have to set `enabled` to `tr
 
 For some cases, the component may even not used, you have to set both `external` and `enabled` to `false`。
 
-In short, there are 3 combination cases to `enabled` and `external`:
+In short, there are 3 combination usage cases for `enabled` and `external`:
 
 ```yaml
 # case1: deploy the component yourself
@@ -218,8 +225,8 @@ mysql:
 
 `services` field is a dict with port name (service name) as keys.
 
-If the component exposed multiple ports, it must be defined as multiple services.
-The port name (or called service name) can be any meaningful  alphanum string,
+If the component exposes multiple ports, it must be defined as multiple services.
+The port name (or called service name) can be any meaningful alphanum string,
 like "web", "http", "rpc", "cluster", "default" etc.
 
 ```yaml
@@ -244,9 +251,9 @@ How to configure the fields of Service are largely determined by whether `extern
 #### Use external component `external: true`
 
 When using external component, the fields of Service are totally indicates
-how to access the service for other components.
+the accessing address to this component service.
 
-For example, if you buy one MySQL instance from a public cloud provider,
+For example, if you purchased one MySQL instance from a public cloud provider,
 you can directly set mysql host and port to the fields of Service.
 
 ```yaml
@@ -256,6 +263,7 @@ mysql:
     default:
       port: 3306
       host: "some-addr"
+
   # other mysql informations need to set under vars
   vars:
     dbuser: "someuser"
@@ -264,23 +272,28 @@ mysql:
     authpass: "rootpass"
 ```
 
-If there are multiple accessing endpoints, you can set them by using the `endpoints` and/or `urls` fields.
+If there are multiple accessing addresses, you can set them by using the `endpoints` and/or `urls` fields.
 
 ```yaml
 elasticsearch:
+  enabled: false
   external: true
   services:
     http:
       endpoints:
-        - "192.168.1.10:9200"
-        - "192.168.1.11:9200"
-        - "192.168.1.12:9200"
+        - "http://192.168.1.10:9200"
+        - "http://192.168.1.11:9200"
+        - "http://192.168.1.12:9200"
+    cluster:
+      endpoints:
+        - "http://192.168.1.10:9300"
+        - "http://192.168.1.11:9400"
+        - "http://192.168.1.12:9300"
 ```
 
 #### Not using external component `external: false`
 
-When not using external component, usually only `port` field needs to be set.
-The `port` here generally used to configure the listened port of the program.
+If you decided to deploy the component yourself, then usually only the `port` field may need to be set. The `port` here generally used to configure the listened port of the program.
 
 ```yaml
 mysql:
@@ -289,11 +302,14 @@ mysql:
   services:
     default:
       port: 3306
+
+  # extra variables can be used to initialize the db instance
   vars:
     dbuser: "someuser"
     dbpass: "somepass"
     authuser: "root"
     authpass: "rootpass"
+
 
 elasticsearch:
   enabled: true
@@ -305,26 +321,26 @@ elasticsearch:
       port: 9300
 ```
 
-How to access this component if just `port` is configured?
+So, the question is, how to access this component if just `port` is configured?
 
 As for those deployed components (`enabled: true`), their hosts information are kept in the hosts inventory file `<target_name>/<zone_name>/hosts.yaml`。
-So, you don't have to configure the `host` field.
+So, you don't have to configure the `host` field here.
 
 And no matther `external` is `true` or `false`, Sail does not recommend to directly reference the fields
 under `services` in your actual ansible or helm code. Sail recommends to use `computed`.
 
 ### Component Computed
 
-The keys of Computed is one-to-one for Services.
+The keys of Computed is one-to-one mapping to Services.
 
 Sail will apply a computation prodedure for each service under `services`,
 and set the computed object to `computed`.
 
-Never directly to edit or change the values under `computed`.
+Never directly to edit or change the values under `computed`, it will be computed and overrite every time sail runs.
 
 The computation procedure is different according to value of `external`.
 
-#### `external: true`
+#### For `external: true`
 
 The computation is relatively simple:
 
@@ -338,25 +354,32 @@ mysql:
       host: "ipaddr-or-hostname"
       port: 3306
       addr: ""
+      path: ""
+      addrs: []
       endpoints: []
       urls: []
 
   computed:
     default:
-      # set to Service.scheme if Service.scheme is not empty, or else set to "tcp"
+      # set to Service.scheme if it is not empty, or else set to "tcp"
       scheme: "tcp"
 
-      # set to Service.host if Service.host is not empty, or else set to "127.0.0.1"
+      # set to Service.host if Service.host is not empty
+      # or set to Service.ipv4 if it is not empty
+      # or set to Service.ipv6 if it is not empty
+      # or else set to "127.0.0.1"
       host: "ipaddr-or-hostname"
 
       # set to Service.port
       port: 3306
 
-      # set to Service.addr if Service.addr is not empty, or else set to "<host>:<port>"
+      # set to Service.addr if it is not empty
+      # or else set to "<host>:<port>"
       # the <host> and <port> are the above computed host and port
       addr: "ipaddr-or-hostname:3306"
 
-      # set to Service.path if Service.path is not empty, or else set to "/"
+      # set to Service.path if it is not empty (auto prefixed with "/" if it's not start with "/")
+      # or else set to "/"
       path: "/"
 
       # use the above computed host as the only element for hosts
@@ -405,26 +428,29 @@ mysql:
 
   computed:
     default:
-      # set to Service.scheme if Service.scheme not empty, or else set to "tcp"
+      # set to Service.scheme if it's not empty, or else set to "tcp"
       scheme: "tcp"
 
-      # set to Service.host if Service.host is not empty
+      # set to Service.host if it's not empty
+      # or set to Service.ipv4 if it's not empty
+      # or set to Service.ipv6 if it's not empty
       # or else to query hosts inventory "targets/<target_name>/<zone_name>/hosts.yaml"
       # if the component exists in the inventory and the hosts for the component is not emtpy,
       # then choose one host from hosts (the hosts list are fetched from dict keys, so the order is uncertainty)
       # for all other cases, set to 127.0.0.1
       host: <computed>
 
-      # set to Service.pubPort if Service.pubPort is not zero
-      # set to Service.lbPort if Service.lbPort is not zero
+      # set to Service.pubPort if it is not zero
+      # set to Service.lbPort if it is not zero
       # for all other cases, set to Service.port
       port: 3306
 
-      # set to Service.addr if Service.addr is not empty, or else set to "<host>:<port>"
+      # set to Service.addr if it is not empty, or else set to "<host>:<port>"
       # the <host> and <port> are the above computed host 和 port
       addr: <computed>
 
-      # set to Service.path if Service.path is not empty, or else set to "/"
+      # set to Service.path if it is not empty (auto prefixed with "/" if it's not start with "/")
+      # or else set to "/"
       path: "/"
 
       # query hosts inventory "targets/<target_name>/<zone_name>/hosts.yaml"
@@ -528,4 +554,64 @@ elasticsearch:
         - tcp://192.168.1.10:9200/
         - tcp://192.168.1.11:9200/
         - tcp://192.168.1.12:9200/
+```
+
+
+### Service
+
+```yaml
+the-component-name:
+  services:
+    default:
+      scheme: ""
+
+      host: "ipaddr-or-hostname"
+      ipv4: ""
+      ipv6: ""
+
+      port: 3306
+
+      addr: ""
+
+      path: ""
+
+      addrs: []
+
+      endpoints: []
+
+      urls: []
+```
+
+### Service Computed
+
+```yaml
+the-component-name:
+  computed:
+    default:
+      scheme: tcp
+
+      host: <ipaddr-or-hostname>
+      # Note, the ipv4 and ipv6 fields removed in computed.
+
+      port: <port>
+
+      addr: <ipaddr-or-hostname>:<port>
+
+      path: /
+
+      # hosts fields only occured in computed.
+      hosts:
+        - <ipaddr-or-hostname>
+
+      # suffixed with :<port>
+      addrs:
+        - <ipaddr-or-hostname>:<port>
+
+      # prefixed with <scheme>://
+      endpoints:
+        - <scheme>://<ipaddr-or-hostname>:<port>
+
+      # suffixed with <path>
+      urls:
+        - <scheme>://<ipaddr-or-hostname>:<port><path>
 ```
