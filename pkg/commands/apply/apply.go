@@ -93,7 +93,7 @@ func (o *ApplyOptions) Run(args []string) error {
 
 	var ansiblePlaybookTags []string
 	for componentName := range serverComponents {
-		ansiblePlaybookTag := componentName
+		ansiblePlaybookTag := "play-" + componentName
 		ansiblePlaybookTags = append(ansiblePlaybookTags, ansiblePlaybookTag)
 	}
 
