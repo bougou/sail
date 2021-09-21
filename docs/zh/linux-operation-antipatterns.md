@@ -33,3 +33,8 @@ export PATH=/opt/component-b/bin:$PATH
 ```
 
 组件的脚本中不会出现其它组件的信息。并且可以比较轻松地实现脚本的幂等。
+
+## 不要在 cron 中使用 ntpdate 去同步时间
+
+- [ntpdate from cron -- DON'T DO THAT!
+](https://lists.debian.org/debian-user/2002/12/msg04091.html)

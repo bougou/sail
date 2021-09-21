@@ -1,7 +1,7 @@
 # Ansible
 
 Sail uses ONLY one ansible playbook to construct the installation steps for all components.
-This is playbook SHOULD be named `sail.yaml` and be placed at `products/<productName>/sail.yaml`.
+This playbook SHOULD be named `sail.yaml` and be placed at `products/<productName>/sail.yaml`.
 
 The `sail.yaml` playbook looks like the following:
 
@@ -50,3 +50,20 @@ Those unspecified components are automatically appended to the last by alphabeti
 1. `sail` gets the components list of the product by parsing `components.yaml` and `components/*.yaml`.
 2. `sail` gets the order by parsing `order.yaml`.
 3. `sail` generates the `sail.yaml` playbook.
+
+## Write Ansible Role
+
+- [Write Ansible Role](ansible-roles.md)
+
+## How sail uses Ansible
+
+Based on [Ansible Official Best Practices](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html), Sail makes some changes.
+
+1. Not using `group_vars` and `host_vars`.
+
+    In Sail, you MUST define the variables for the Product in `products/<productName>/{vars.yaml,components.yaml,components/*.yaml}`.
+    And for specific environment (target/zone), there will be a correspoinding `targets/<target>/<zone>/vars.yaml` file which holding same variables defined for the product installed in the environment.
+
+    To manage multiple environments, Sail uses a targets directory to store all configurations of the environments. Each target/zone holds its variables and inventory separately.
+
+2. Using **Product** concept to weaken the concept of **Ansible Playbook**. Each product may have only one playbook named `sail.yaml`.

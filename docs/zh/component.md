@@ -184,7 +184,7 @@ componentName:
 
 Sail 目前通过 Ansible Role 来部署常规组件，通过 Helm Chart 来部署 Pod 组件。
 
-- [开发 Ansible Role](./ansible.md)
+- [开发 Ansible Role](./../en/ansible.md)
 - [开发 Helm Chart](./helm.md)
 
 ### 组件 Enabled/External
