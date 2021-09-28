@@ -1,16 +1,11 @@
 apiVersion: v1
 appVersion: v3
-description: A Helm chart for Orchsym in Kubernetes
-name: orchsym
+description: A Helm chart for foobar
+name: foobar
 keywords:
-  - orchsym
-  - api-platform
-home: https://www.baishan.com/tech/orchsym/
+  - foobar
+home: https://github.com/bougou
 version: 0.0.1
 maintainers:
-  - name: xiaopan.han
-    email: xiaopan.han@baishancloud.com
-  - name: chengcai.bao
-    email: chengcai.bao@baishancloud.com
-  - name: quan.wang
-    email: quan.wang@baishancloud.com
+  - name: bougou
+    email: bougou@126.com

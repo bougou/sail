@@ -169,6 +169,7 @@ func (c *Component) GetRoles() []string {
 	return roles
 }
 
+// GenAnsiblePlay generatea a ansible play for this component.
 func (c *Component) GenAnsiblePlay() (*ansible.Play, error) {
 	hostsPattern := fmt.Sprintf("{{ _ansiblepattern_%s | default('%s') }}", strings.ReplaceAll(c.Name, "-", "_"), c.Name)
 	play := ansible.NewPlay(c.Name, hostsPattern)

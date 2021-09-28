@@ -246,6 +246,10 @@ func (p *Product) GenSail() (ansible.Playbook, error) {
 		}
 
 		play, err := c.GenAnsiblePlay()
+
+		// Todo, make it configurable
+		play.AnyErrorsFatal = false
+
 		if err != nil {
 			msg := fmt.Sprintf("gen ansible playbook for component (%s) failed, err: %s", c.Name, err)
 			return nil, errors.New(msg)

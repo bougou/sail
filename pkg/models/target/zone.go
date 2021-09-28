@@ -26,9 +26,11 @@ const (
 )
 
 type ZoneMeta struct {
-	// Product Name
-	SailProduct  string `json:"_sail_product" yaml:"_sail_product"`     // tag value must equal to SailMetaVarProduct
-	SailHelmMode string `json:"_sail_helm_mode" yaml:"_sail_helm_mode"` // tag value must equal to SailMetaVarHelmMode
+	// tag value must equal to SailMetaVarProduct
+	SailProduct string `json:"_sail_product" yaml:"_sail_product"`
+
+	// tag value must equal to SailMetaVarHelmMode
+	SailHelmMode string `json:"_sail_helm_mode" yaml:"_sail_helm_mode"`
 }
 
 type Zone struct {

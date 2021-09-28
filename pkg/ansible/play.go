@@ -3,13 +3,13 @@ package ansible
 import "gopkg.in/yaml.v3"
 
 type Play struct {
-	Name           string    `yaml:"name,omitempty"`
-	Hosts          yaml.Node `yaml:"hosts,omitempty"`
-	AnyErrorsFatal bool      `yaml:"any_errors_fatal,omitempty"`
-	GatherFacts    bool      `yaml:"gather_facts,omitempty"`
-	Become         bool      `yaml:"become,omitempty"`
-	Roles          []Role    `yaml:"roles,omitempty"`
-	Tags           []string  `yaml:"tags,omitempty"`
+	Name           string    `yaml:"name"`
+	Hosts          yaml.Node `yaml:"hosts"`
+	AnyErrorsFatal bool      `yaml:"any_errors_fatal"`
+	GatherFacts    bool      `yaml:"gather_facts"`
+	Become         bool      `yaml:"become"`
+	Roles          []Role    `yaml:"roles"`
+	Tags           []string  `yaml:"tags"`
 }
 
 func NewPlay(name string, hostsstr string) *Play {
@@ -20,7 +20,8 @@ func NewPlay(name string, hostsstr string) *Play {
 			Style: yaml.DoubleQuotedStyle,
 			Value: hostsstr,
 		},
-		GatherFacts: false,
+		GatherFacts:    true,
+		AnyErrorsFatal: true,
 	}
 }
 
