@@ -76,7 +76,7 @@ func (o *BundleOptions) Run() error {
 	}
 
 	components := product.ComponentList()
-	fmt.Printf("the product %s contains the following components:\n", o.productName)
+	fmt.Printf("the product %s contains (%d) components:\n", o.productName, len(components))
 	for _, c := range components {
 		fmt.Printf("- %s\n", c)
 	}

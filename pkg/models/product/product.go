@@ -455,19 +455,22 @@ func (p *Product) checkPortsConflict(cm *cmdb.CMDB) error {
 // loadOrder init the order field of product.
 // It must loaded after loadComponents
 func (p *Product) loadOrder() error {
+	order := make([]string, 0)
+
 	b, err := os.ReadFile(p.orderFile)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			msg := fmt.Sprintf("not found order file (%s) for product (%s)", p.orderFile, p.Name)
-			return errors.New(msg)
+			// use default order
+			order = append(order, p.ComponentList()...)
+			p.order = dedupSliceString(order)
+			return nil
 		}
-		return err
+
+		return fmt.Errorf("read file (%s) failed, err: %s", p.orderFile, err)
 	}
 
-	order := make([]string, 0)
 	if err := yaml.Unmarshal(b, &order); err != nil {
-		msg := fmt.Sprintf("unmarshal order for product (%s) failed, err: %s", p.Name, err)
-		return errors.New(msg)
+		return fmt.Errorf("unmarshal order for product (%s) failed, err: %s", p.Name, err)
 	}
 
 	for _, v := range order {
@@ -478,9 +481,7 @@ func (p *Product) loadOrder() error {
 
 	order = append(order, p.ComponentList()...)
 	p.order = dedupSliceString(order)
-
 	return nil
-
 }
 
 func dedupSliceString(stringSlice []string) []string {

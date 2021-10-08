@@ -13,7 +13,7 @@ List all components for the specified product.
 
 ```bash
 $ ./sail list-components -p <productName>
-the product <productName> contains the following components:
+the product <productName> contains (<number>) components:
 - <componentName1>
 - <componentName2>
 - ...
