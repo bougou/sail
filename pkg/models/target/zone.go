@@ -23,6 +23,8 @@ const (
 
 	SailHelmModeComponent = "component"
 	SailHelmModeProduct   = "product"
+
+	SailPlaybookFile = ".sail.yaml"
 )
 
 type ZoneMeta struct {
@@ -213,6 +215,9 @@ func (zone *Zone) Dump() error {
 	}
 
 	errs := []string{}
+	if err := zone.RenderSailPlaybook(); err != nil {
+		errs = append(errs, err.Error())
+	}
 	if err := zone.RenderVars(); err != nil {
 		errs = append(errs, err.Error())
 	}
@@ -229,6 +234,27 @@ func (zone *Zone) Dump() error {
 	if len(errs) != 0 {
 		return fmt.Errorf("%s", strings.Join(errs, "\n"))
 	}
+	return nil
+}
+
+// RenderSailPlaybook renders the default temporary ansible playbook file for the product of the zone.
+func (zone *Zone) RenderSailPlaybook() error {
+	product := zone.Product
+	playbook, err := product.GenSail()
+	if err != nil {
+		msg := fmt.Sprintf("gen sail playbook failed, err: %s", err)
+		return errors.New(msg)
+	}
+
+	b, err := common.Encode("yaml", playbook)
+	if err != nil {
+		fmt.Println("encode vars failed", err)
+	}
+
+	if err := os.WriteFile(zone.Product.SailPlaybookFile(), b, 0644); err != nil {
+		fmt.Println("write product sail playbook file failed", err)
+	}
+
 	return nil
 }
 
@@ -353,7 +379,8 @@ func (zone *Zone) BuildInventory(hostsMap map[string][]string) error {
 
 func (zone *Zone) PlaybookFile(playbookName string) string {
 	if playbookName == "" {
-		playbookName = product.DefaultPlaybook
+		// auto generated when sail runs
+		return path.Join(zone.Product.Dir, product.DefaultPlaybookFile)
 	}
 
 	if strings.HasSuffix(playbookName, ".yaml") {
@@ -392,12 +419,17 @@ func (zone *Zone) LoadHosts() error {
 }
 
 func (zone *Zone) LoadPlatforms() error {
+	i := map[string]cmdb.Platform{}
+
 	b, err := os.ReadFile(zone.PlatformsFile)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			zone.CMDB.Platforms = i
+			return nil
+		}
 		return fmt.Errorf("read file (%s) failed, err: %s", zone.PlatformsFile, err)
 	}
 
-	i := map[string]cmdb.Platform{}
 	if err := yaml.Unmarshal(b, &i); err != nil {
 		return fmt.Errorf("unmarshal platforms failed, err: %s", err)
 	}

@@ -20,6 +20,9 @@ type Component struct {
 	Name    string `yaml:"-"`
 	Version string `yaml:"version"`
 
+	// Group can be used to group by components.
+	Group string `yaml:"group"`
+
 	// If RoleName is empty, it will be set to component Name.
 	RoleName string `yaml:"roleName"`
 
@@ -155,6 +158,7 @@ func (c *Component) Compute(cm *cmdb.CMDB) error {
 	return nil
 }
 
+// GetRoles return the ansible roles which will be applied to this component.
 func (c *Component) GetRoles() []string {
 	roles := []string{}
 	if len(c.Roles) == 0 {
@@ -171,15 +175,25 @@ func (c *Component) GetRoles() []string {
 
 // GenAnsiblePlay generatea a ansible play for this component.
 func (c *Component) GenAnsiblePlay() (*ansible.Play, error) {
+	// Note, we use the component name as the default ansible group name.
 	hostsPattern := fmt.Sprintf("{{ _ansiblepattern_%s | default('%s') }}", strings.ReplaceAll(c.Name, "-", "_"), c.Name)
 	play := ansible.NewPlay(c.Name, hostsPattern)
 	play.WithTags("play-" + c.Name)
+	if c.Group != "" {
+		play.WithTags(c.Group)
+	}
 
-	for _, r := range c.GetRoles() {
+	for _, roleName := range c.GetRoles() {
 		role := ansible.Role{
-			Role: r,
-			Tags: []string{r},
+			Role: roleName,
+			Tags: []string{roleName},
 		}
+		if roleName == c.RoleName && roleName != c.Name {
+			role.Tags = append(role.Tags, c.Name)
+		} else {
+			role.Tags = append(role.Tags, roleName+"-"+c.Name)
+		}
+
 		play.Roles = append(play.Roles, role)
 	}
 

@@ -40,6 +40,8 @@ func (zone *Zone) PrepareHelm() error {
 		return zone.PrepareHelmCharts()
 	case "product":
 		return zone.PrepareHelmChart()
+	case "":
+		return nil
 	default:
 		return fmt.Errorf("not supported helm mode: (%s)", zone.SailHelmMode)
 	}

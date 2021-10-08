@@ -18,7 +18,7 @@ import (
 )
 
 const DefaultPlaybook string = "sail"
-const DefaultPlaybookFile string = "sail.yaml"
+const DefaultPlaybookFile string = ".sail.yaml"
 
 type Product struct {
 	Name string `json:"Name,omitempty"  yaml:"Name,omitempty"`
@@ -230,14 +230,15 @@ func (p *Product) ComponentListWithFilterOptionsAnd(filterOptions ...FilterOptio
 func (p *Product) GenSail() (ansible.Playbook, error) {
 	out := ansible.Playbook(make([]ansible.Play, 0))
 
-	gatherFactsPlay := ansible.NewPlay("gather facts", "all")
-	gatherFactsPlay.GatherFacts = true
-	gatherFactsPlay.AnyErrorsFatal = false
-	gatherFactsPlay.Become = false
-	role := ansible.Role{Role: "always"}
-	gatherFactsPlay.WithRoles(role)
-	gatherFactsPlay.WithTags("gather-facts")
-	out = append(out, *gatherFactsPlay)
+	// Todo, add pre and post plays
+	// gatherFactsPlay := ansible.NewPlay("gather facts", "all")
+	// gatherFactsPlay.GatherFacts = true
+	// gatherFactsPlay.AnyErrorsFatal = false
+	// gatherFactsPlay.Become = false
+	// role := ansible.Role{Role: "always"}
+	// gatherFactsPlay.WithRoles(role)
+	// gatherFactsPlay.WithTags("gather-facts")
+	// out = append(out, *gatherFactsPlay)
 
 	for _, compName := range p.order {
 		c, exists := p.DefaultComponents[compName]

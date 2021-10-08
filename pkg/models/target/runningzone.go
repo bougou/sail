@@ -250,6 +250,9 @@ func (rz *RunningZone) RunHelm(args []string) error {
 
 		return rz.helmCmd(helmRelease, helmChartDir, k8s, valuesFiles, args...)
 
+	case "":
+		return nil
+
 	default:
 		return fmt.Errorf("not supported helm mode: (%s)", rz.zone.SailHelmMode)
 	}

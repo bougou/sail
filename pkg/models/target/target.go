@@ -79,6 +79,9 @@ func (t *Target) LoadZone(zoneName string) error {
 	for k, v := range zone.Product.Vars {
 		zoneV[k] = v
 	}
+	for k, v := range zone.Product.Components {
+		zoneV[k] = v
+	}
 	zoneV["platforms"] = zone.CMDB.Platforms
 	zoneV["inventory"] = zone.CMDB.Inventory
 

@@ -28,7 +28,7 @@ func NewCmdApply(sailOption *models.SailOption) *cobra.Command {
 
 	cmd.Flags().StringVarP(&o.TargetName, "target", "t", o.TargetName, "target name")
 	cmd.Flags().StringVarP(&o.ZoneName, "zone", "z", o.ZoneName, "zone name")
-	cmd.Flags().StringVarP(&o.Playbook, "playbook", "p", "run", "optional playbook name")
+	cmd.Flags().StringVarP(&o.Playbook, "playbook", "p", "", "optional playbook name")
 	cmd.Flags().StringVarP(&o.StartAtPlay, "start-at-play", "", "", "start the playbook from the play with this tag name")
 	cmd.Flags().StringArrayVarP(&o.Components, "component", "c", o.Components, "the component")
 	cmd.Flags().BoolVarP(&o.Ansible, "ansible", "", o.Ansible, "choose components deployed as server")

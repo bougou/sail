@@ -171,7 +171,7 @@ Sail currently supports using Ansible Role to deploy normal components and using
 
 In your operation code of the component, you can make both the ansible role and the helm chart be prepared.
 Thus, the operator can choose which method is used to deploy the component for a specific environment.
-But still you can ONLY provide ansible role OR helm chart for the component as your wish.
+But still you can provide ONLY ansible role OR helm chart for the component as your wish.
 
 When running sail commands like `sail upgrade -c <componentName>`, `sail`
 will automatically runs `ansible-playbook` or `helm` for the component according to the `form` field.
@@ -192,11 +192,11 @@ When deploying the product, there are different choices for "mysql" component fo
 - You may want to deploy a mysql cluster using some plain servers.
 - You may want to use the mysql instance served and maintained by other specical DBA teams from your company.
 
-Anyway, when you want to use external services for the component, you have to set `external` to `true` in the `vars.yaml` of the environment `targets/<target_name>/<zone_name>/vars.yaml`.
+Anyway, when you want to use external services for the component, you have to set `external` to `true` for the component in `targets/<target_name>/<zone_name>/vars.yaml`.
 
-When you want to deploy the component yourself, you have to set `enabled` to `true`。
+When you want to deploy the component yourself, you have to set `enabled` to `true`.
 
-For some cases, the component may even not used, you have to set both `external` and `enabled` to `false`。
+For some cases, the component may even not used, you have to set both `external` and `enabled` to `false`.
 
 In short, there are 3 combination usage cases for `enabled` and `external`:
 
@@ -220,8 +220,8 @@ mysql:
 
 ### Component Services
 
-- one component can provides 0, 1, or multiple services to other components
-- one service for one port
+- one component can provide 0, 1, or multiple services for other components
+- one service maps to one port
 
 `services` field is a dict with port name (service name) as keys.
 
@@ -336,9 +336,9 @@ The keys of Computed is one-to-one mapping to Services.
 Sail will apply a computation prodedure for each service under `services`,
 and set the computed object to `computed`.
 
-Never directly to edit or change the values under `computed`, it will be computed and overrite every time sail runs.
+Never directly to edit or change the values of the fields under `computed`, it will be computed and overwrite every time sail runs.
 
-The computation procedure is different according to value of `external`.
+The computation procedure is different according to the value of `external`.
 
 #### For `external: true`
 

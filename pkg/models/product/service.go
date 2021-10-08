@@ -108,8 +108,8 @@ func (s *Service) Compute(external bool, cm *cmdb.CMDB) (*ServiceComputed, error
 	return s.computeNonExternal(cm)
 }
 
-// computeNonExternal returns ServiceComputed.
-// It should be used for component with external set to false.
+// computeNonExternal returns ServiceComputed for service.
+// It should be used for component with `external` set to false.
 func (s *Service) computeNonExternal(cm *cmdb.CMDB) (*ServiceComputed, error) {
 	svcComputed := NewServiceComputed()
 
@@ -234,7 +234,7 @@ SETHOST:
 }
 
 // computeExternal returns ServiceComputed.
-// It should be used for component with external set to true.
+// It should be used for component with `external` set to true.
 func (s *Service) computeExternal() (*ServiceComputed, error) {
 	svcComputed := NewServiceComputed()
 
