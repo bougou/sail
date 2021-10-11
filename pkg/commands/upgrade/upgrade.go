@@ -27,6 +27,7 @@ func NewCmdUpgrade(sailOption *models.SailOption) *cobra.Command {
 
 	cmd.Flags().StringVarP(&o.TargetName, "target", "t", o.TargetName, "target name")
 	cmd.Flags().StringVarP(&o.ZoneName, "zone", "z", o.ZoneName, "zone name")
+	cmd.Flags().BoolVarP(&o.AllZones, "all-zones", "", o.AllZones, "choose all zones, no meaning if explicitly specified a zone")
 	cmd.Flags().StringArrayVarP(&o.Components, "component", "c", o.Components, "the component")
 	cmd.Flags().BoolVarP(&o.Ansible, "ansible", "", o.Ansible, "choose components deployed as server")
 	cmd.Flags().BoolVarP(&o.Helm, "helm", "", o.Helm, "choose components deployed as pod")
@@ -36,6 +37,7 @@ func NewCmdUpgrade(sailOption *models.SailOption) *cobra.Command {
 type UpgradeOptions struct {
 	TargetName string `json:"target_name"`
 	ZoneName   string `json:"zone_name"`
+	AllZones   bool   `json:"all_zones"`
 
 	Components []string `json:"component"`
 	Ansible    bool     `json:"ansible"`
@@ -66,13 +68,36 @@ func (o *UpgradeOptions) Validate() error {
 	if o.TargetName == "" {
 		return errors.New("must specify target name")
 	}
-	if o.ZoneName == "" {
-		return errors.New("must specify zone name")
+	if o.ZoneName == "" && !o.AllZones {
+		return errors.New("must specify zone name, or choose all zones")
 	}
 	return nil
 }
 
 func (o *UpgradeOptions) Run(args []string) error {
+	if o.ZoneName != "" {
+		return o.run(o.TargetName, o.ZoneName, args)
+	}
+
+	if o.AllZones {
+		t := target.NewTarget(o.sailOption, o.TargetName)
+		zoneNames, err := t.AllZones()
+		if err != nil {
+			return fmt.Errorf("determine all zones for target (%s) failed, err: %s", o.TargetName, err)
+		}
+
+		for _, zoneName := range zoneNames {
+			if err := o.run(o.TargetName, zoneName, args); err != nil {
+				// todo, add options for error handling
+				continue
+			}
+		}
+	}
+
+	return nil
+}
+
+func (o *UpgradeOptions) run(targetName string, zoneName string, args []string) error {
 	options.PrintColorHeader(o.TargetName, o.ZoneName)
 
 	zone := target.NewZone(o.sailOption, o.TargetName, o.ZoneName)

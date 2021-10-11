@@ -22,8 +22,7 @@ type Group struct {
 }
 ```
 
-1. Inventory 虽然是一个 struct，但本质上是一个里面的 items map
-2. Group 是一个 struct，
+## Inventory Content
 
 ```json
 {
@@ -33,7 +32,7 @@ type Group struct {
       "192.168.28.72"
     ],
     "vars": {
-      "ansible_ssh_user": "johndoe",
+      "ansible_ssh_user": "someuser",
       "ansible_ssh_private_key_file": "~/.ssh/mykey",
       "example_variable": "value"
     },
@@ -44,7 +43,7 @@ type Group struct {
           "192.168.28.72"
         ],
         "vars": {
-          "ansible_ssh_user": "johndoe",
+          "ansible_ssh_user": "someuser",
           "ansible_ssh_private_key_file": "~/.ssh/mykey",
           "example_variable": "value"
         },
@@ -58,7 +57,7 @@ type Group struct {
       "192.168.28.72"
     ],
     "vars": {
-      "ansible_ssh_user": "johndoe",
+      "ansible_ssh_user": "someuser",
       "ansible_ssh_private_key_file": "~/.ssh/mykey",
       "example_variable": "value"
     }
@@ -76,7 +75,5 @@ type Group struct {
 }
 ```
 
-以上面的 JSON 内容为例：
-1. 整个 JSON 可以映射到一个 Inventory 结构体中（实际上是 inventory 结构体 items 字段里面， items 是一个 map）
-2. Inventory 的 items map 里面 key 表示 group Name，value 表示一个 group，可以映射到一个 Group 结构体中。
-3. Group 里面有 Hosts, Vars, Children 字段。
+- The above JSON content can be decoded into a `Inventory` struct, actually the `items` map of `Inventory`.
+- The key of `items` map represents a group name, and the value can be decoded into `Group` struct.

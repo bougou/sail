@@ -206,12 +206,12 @@ func (zone *Zone) Dump() error {
 		return fmt.Errorf("zone compute failed, err: %s", err)
 	}
 
-	if err := zone.LoadTarget(); err != nil {
-		return fmt.Errorf("load target failed, err: %s", err)
-	}
-
 	if err := os.MkdirAll(zone.ZoneDir, os.ModePerm); err != nil {
 		return fmt.Errorf("make zone dir failed, err: %s", err)
+	}
+
+	if err := zone.LoadTarget(); err != nil {
+		return fmt.Errorf("load target failed, err: %s", err)
 	}
 
 	errs := []string{}

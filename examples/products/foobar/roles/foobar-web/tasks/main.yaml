@@ -1,4 +1,4 @@
 ---
-- name: real task
+- name: tasks for foobar-web
   debug:
     msg: install/config/start foobar-web

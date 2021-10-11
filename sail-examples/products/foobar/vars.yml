@@ -1,8 +1,0 @@
-install_dir: /opt
-data_dir: /data
-log_dir: /log
-timezone: "Asia/Shanghai"
-repo_keep_origin: true
-
-a:
-  b: 10

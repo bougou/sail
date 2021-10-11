@@ -1,0 +1,60 @@
+- name: foobar-api
+  hosts: "{{ _ansiblepattern_foobar_api | default('foobar-api') }}"
+  any_errors_fatal: false
+  gather_facts: true
+  become: false
+  roles:
+    - role: foobar-api
+      tags:
+        - foobar-api
+        - foobar-api-foobar-api
+  tags:
+    - play-foobar-api
+- name: foobar-backend
+  hosts: "{{ _ansiblepattern_foobar_backend | default('foobar-backend') }}"
+  any_errors_fatal: false
+  gather_facts: true
+  become: false
+  roles:
+    - role: foobar-backend
+      tags:
+        - foobar-backend
+        - foobar-backend-foobar-backend
+  tags:
+    - play-foobar-backend
+- name: foobar-cache
+  hosts: "{{ _ansiblepattern_foobar_cache | default('foobar-cache') }}"
+  any_errors_fatal: false
+  gather_facts: true
+  become: false
+  roles:
+    - role: foobar-cache
+      tags:
+        - foobar-cache
+        - foobar-cache-foobar-cache
+  tags:
+    - play-foobar-cache
+- name: foobar-db
+  hosts: "{{ _ansiblepattern_foobar_db | default('foobar-db') }}"
+  any_errors_fatal: false
+  gather_facts: true
+  become: false
+  roles:
+    - role: foobar-db
+      tags:
+        - foobar-db
+        - foobar-db-foobar-db
+  tags:
+    - play-foobar-db
+- name: foobar-web
+  hosts: "{{ _ansiblepattern_foobar_web | default('foobar-web') }}"
+  any_errors_fatal: false
+  gather_facts: true
+  become: false
+  roles:
+    - role: foobar-web
+      tags:
+        - foobar-web
+        - foobar-web-foobar-web
+  tags:
+    - play-foobar-web

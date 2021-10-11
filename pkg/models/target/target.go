@@ -36,10 +36,11 @@ func NewTarget(sailOption *models.SailOption, name string) *Target {
 	}
 }
 
-func (t *Target) LoadAllZones() error {
+// AllZones return zone names list of the target.
+func (t *Target) AllZones() ([]string, error) {
 	entries, err := os.ReadDir(t.dir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	zoneNames := make([]string, 0)
@@ -55,6 +56,15 @@ func (t *Target) LoadAllZones() error {
 			continue
 		}
 		zoneNames = append(zoneNames, zoneName)
+	}
+
+	return zoneNames, nil
+}
+
+func (t *Target) LoadAllZones() error {
+	zoneNames, err := t.AllZones()
+	if err != nil {
+		return err
 	}
 
 	for _, zoneName := range zoneNames {

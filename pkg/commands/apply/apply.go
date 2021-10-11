@@ -28,6 +28,7 @@ func NewCmdApply(sailOption *models.SailOption) *cobra.Command {
 
 	cmd.Flags().StringVarP(&o.TargetName, "target", "t", o.TargetName, "target name")
 	cmd.Flags().StringVarP(&o.ZoneName, "zone", "z", o.ZoneName, "zone name")
+	cmd.Flags().BoolVarP(&o.AllZones, "all-zones", "", o.AllZones, "choose all zones, no meaning if explicitly specified a zone")
 	cmd.Flags().StringVarP(&o.Playbook, "playbook", "p", "", "optional playbook name")
 	cmd.Flags().StringVarP(&o.StartAtPlay, "start-at-play", "", "", "start the playbook from the play with this tag name")
 	cmd.Flags().StringArrayVarP(&o.Components, "component", "c", o.Components, "the component")
@@ -40,6 +41,7 @@ func NewCmdApply(sailOption *models.SailOption) *cobra.Command {
 type ApplyOptions struct {
 	TargetName string `json:"target_name"`
 	ZoneName   string `json:"zone_name"`
+	AllZones   bool   `json:"all_zones"`
 	Playbook   string `json:"playbook"`
 
 	StartAtPlay string `json:"start_at_playbook"`
@@ -69,13 +71,45 @@ func (o *ApplyOptions) Complete(cmd *cobra.Command, args []string) error {
 }
 
 func (o *ApplyOptions) Validate() error {
+	if o.TargetName == "" {
+		return errors.New("must specify target name")
+	}
+	if o.ZoneName == "" && !o.AllZones {
+		return errors.New("must specify zone name, or choose all zones")
+	}
 	return nil
 }
 
 func (o *ApplyOptions) Run(args []string) error {
-	options.PrintColorHeader(o.TargetName, o.ZoneName)
+	if o.ZoneName != "" {
+		return o.run(o.TargetName, o.ZoneName, args)
+	}
 
-	zone := target.NewZone(o.sailOption, o.TargetName, o.ZoneName)
+	if o.AllZones {
+		t := target.NewTarget(o.sailOption, o.TargetName)
+		zoneNames, err := t.AllZones()
+		if err != nil {
+			return fmt.Errorf("determine all zones for target (%s) failed, err: %s", o.TargetName, err)
+		}
+
+		for i, zoneName := range zoneNames {
+			if i != 0 {
+				fmt.Printf("\n\n\n")
+			}
+			if err := o.run(o.TargetName, zoneName, args); err != nil {
+				// todo, add options for error handling
+				continue
+			}
+		}
+	}
+
+	return nil
+}
+
+func (o *ApplyOptions) run(targetName string, zoneName string, args []string) error {
+	options.PrintColorHeader(targetName, zoneName)
+
+	zone := target.NewZone(o.sailOption, targetName, zoneName)
 	if err := zone.Load(); err != nil {
 		return err
 	}

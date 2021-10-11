@@ -1,0 +1,49 @@
+foobar-web:
+  version: "v0.0.1"
+  enabled: true
+  external: false
+  form: "server"
+  services:
+    http-web:
+      scheme: "http"
+      port: 80
+    https-web:
+      scheme: "https"
+      port: 443
+
+foobar-api:
+  version: "v0.0.2"
+  enabled: true
+  external: false
+  form: "server"
+  services:
+    default:
+      scheme: http
+      port: 8080
+
+foobar-backend:
+  version: "v0.0.3"
+  enabled: true
+  external: false
+  form: "server"
+
+foobar-db:
+  version: "v0.0.4"
+  enabled: false
+  external: true
+  form: "server"
+  services:
+    default:
+      scheme: "tcp"
+      host: "mysql-xyz.some-cloud.com"
+      port: 3306
+
+foobar-cache:
+  version: "v0.0.5"
+  enabled: true
+  external: false
+  form: "server"
+  services:
+    default:
+      scheme: "tcp"
+      port: 6309

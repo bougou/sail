@@ -49,7 +49,7 @@ func (i *Inventory) MarshalJSON() ([]byte, error) {
 
 func (i *Inventory) UnmarshalJSON(data []byte) error {
 	var m GroupsMap = make(map[string]*Group)
-	decoder := json.NewDecoder(bytes.NewBuffer((data)))
+	decoder := json.NewDecoder(bytes.NewBuffer(data))
 	// decoder.UseNumber()
 	if err := decoder.Decode(&m); err != nil {
 		return err

@@ -1,0 +1,3 @@
+installDir: /opt
+dataDir: /data
+timezone: "Asia/Shanghai"
