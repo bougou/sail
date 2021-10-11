@@ -44,13 +44,32 @@ Package(s) are real software artifacts. They are normally compressed in some for
 
 Generally, you run `sail` on a centralized machine (deploy machine).
 
+```bash
+# Download sail binary file
+# Move sail binary file to a $PATH directory
+$ mv sail /usr/local/bin/
+$ chmod +x /usr/local/bin/sail
+```
+
 The `sail` command uses three directories to do its job.
+
+- ***products-dir*** Store the operation code of product(s).
+- ***targets-dir*** Store the environment informations.
+- ***packages-dir*** Store package files.
+
+You can specify them by command line options when running `sail`, like:
+
+```bash
+$ sail --products-dir /path/to/products --targets-dir /path/to/targets --packages-dir /path/to/packages <subcommand>
+```
+
+You can also set them in `~/.sailrc.yaml` file to avoid typing them every time.
 
 ```yaml
 # cat ~/.sailrc.yaml
-products-dir: /path/to/products    # Store the operation code of product(s).
-targets-dir: /path/to/targets      # Store the environment informations.
-packages-dir: /path/to/packages    # Store package files.
+products-dir: /path/to/products
+targets-dir: /path/to/targets
+packages-dir: /path/to/packages
 ```
 
 > Note, these three directories can be located at different places (that is not under a same parent dir).

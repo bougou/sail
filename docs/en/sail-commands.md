@@ -7,6 +7,22 @@ targets-dir: /path/to/targets
 packages-dir: /path/to/packages
 ```
 
+Most `sail` subcommands require explicitly specifying the environment you want to operate by `--target <targetname>` and `--zone <zonename>`, which corresponds to the `<targets-dir>/<targetname>/<zonename>`.
+
+Sometimes, if you ONLY have one target and one zone to operate, specify `--target` and `--zone` options would seems tedious each time you run `sail`.
+
+You can configure `default-target` and `default-zone` variables in `~/.sairc.yaml` in advance to shorten the typing.
+And explicitly specified `--target` and `--zone` arguments would override them.
+
+```yaml
+products-dir: /path/to/products
+targets-dir: /path/to/targets
+packages-dir: /path/to/packages
+
+default-target: targetname
+default-zone: zonename
+```
+
 ## sail list-components
 
 List all components for the specified product.
