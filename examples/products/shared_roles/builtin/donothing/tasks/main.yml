@@ -1,6 +1,0 @@
----
-- name: do nothing role
-  debug: msg="do nothing role"
-
-- name: hostname
-  shell: date
