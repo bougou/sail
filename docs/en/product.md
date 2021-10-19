@@ -6,7 +6,7 @@ The `products-dir` is refered as `products` in other places in the documents.
 
 > Ideally, the contents of `products` should be maintained in a Git repo.
 > Or, you can keep one separated Git repo for each product.
-> If have to change the operation code for the product when the operation logic of the product is changed.
+> You need to change the operation code for the product when the operation logic of the product is changed.
 
 There are three special files or directories reserved by `sail` for special purposes.
 

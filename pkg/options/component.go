@@ -61,6 +61,10 @@ func ParseChoosedComponents(zone *target.Zone, components []string, ansible bool
 	}
 
 	for componentName, componentVersion := range m {
+		if !zone.Product.HasComponent(componentName) {
+			return nil, nil, fmt.Errorf("component (%s) is not a valid component name for product (%s)", componentName, zone.Product.Name)
+		}
+
 		if componentVersion != "" {
 			zone.SetComponentVersion(componentName, componentVersion)
 		}
@@ -74,6 +78,7 @@ func ParseChoosedComponents(zone *target.Zone, components []string, ansible bool
 			}
 		}
 	}
+
 	if helm {
 		podComponents := zone.Product.ComponentListWithFitlerOptionsOr(product.FilterOptionFormPod)
 		for _, podComponent := range podComponents {

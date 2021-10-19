@@ -26,7 +26,7 @@ The generated `.sail.yaml` playbook looks like the following. For each component
     - play-kafka
 ```
 
-The `.sail.yaml` playbook is composed of plays for the components of the product.
+The `.sail.yaml` playbook is composed of plays of the components of the product.
 The order in the playbook also indicates the installation sequence for the components of the product.
 
 But you can change the installation order of the components by setting `products/<productName>/order.yaml`.
@@ -44,9 +44,9 @@ Those unspecified components are automatically appended to the last by alphabeti
 
 1. `sail` gets the components list of the product by parsing `components.yaml` and `components/*.yaml`.
 2. `sail` gets the order by parsing `order.yaml`.
-3. `sail` generates the `sail.yaml` playbook.
+3. `sail` generates the `.sail.yaml` playbook.
 
-> You can use `sail gen-sail -p <productName>` to generate it and to get a look at `.sail.yaml`.
+> You can use `sail gen-sail -p <productName>` to manually generate it and get a look at `.sail.yaml`.
 
 ## Write Ansible Role
 
