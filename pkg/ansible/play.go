@@ -8,9 +8,17 @@ type Play struct {
 	AnyErrorsFatal bool      `yaml:"any_errors_fatal"`
 	GatherFacts    bool      `yaml:"gather_facts"`
 	Become         bool      `yaml:"become"`
-	Roles          []Role    `yaml:"roles"`
-	Tags           []string  `yaml:"tags"`
+	Tasks          []Task    `yaml:"tasks,omitempty"`
+	Roles          []Role    `yaml:"roles,omitempty"`
+	Tags           []string  `yaml:"tags,omitempty"`
 }
+
+type Task struct {
+	Name   string `yaml:"name"`
+	Module `json:",inline" yaml:",inline"`
+}
+type Module map[string]ModuleArgs
+type ModuleArgs map[string]interface{}
 
 func NewPlay(name string, hostsstr string) *Play {
 	return &Play{
@@ -22,16 +30,34 @@ func NewPlay(name string, hostsstr string) *Play {
 		},
 		GatherFacts:    true,
 		AnyErrorsFatal: true,
+		Tasks:          make([]Task, 0),
+		Roles:          make([]Role, 0),
+		Tags:           make([]string, 0),
 	}
 }
 
-func (p *Play) WithRoles(roles ...Role) *Play {
+func (p *Play) AddTasks(tasks ...Task) *Play {
+	p.Tasks = append(p.Tasks, tasks...)
+	return p
+}
+
+func (p *Play) AddRoles(roles ...Role) *Play {
 	p.Roles = append(p.Roles, roles...)
 	return p
 }
 
-func (p *Play) WithTags(tags ...string) *Play {
+func (p *Play) AddTags(tags ...string) *Play {
 	p.Tags = append(p.Tags, tags...)
+	return p
+}
+
+func (p *Play) SetGatherFacts(flag bool) *Play {
+	p.GatherFacts = flag
+	return p
+}
+
+func (p *Play) SetAnyErrorsFatal(flag bool) *Play {
+	p.AnyErrorsFatal = flag
 	return p
 }
 

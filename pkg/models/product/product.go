@@ -231,14 +231,21 @@ func (p *Product) GenSail() (ansible.Playbook, error) {
 	out := ansible.Playbook(make([]ansible.Play, 0))
 
 	// Todo, add pre and post plays
-	// gatherFactsPlay := ansible.NewPlay("gather facts", "all")
-	// gatherFactsPlay.GatherFacts = true
-	// gatherFactsPlay.AnyErrorsFatal = false
-	// gatherFactsPlay.Become = false
-	// role := ansible.Role{Role: "always"}
-	// gatherFactsPlay.WithRoles(role)
-	// gatherFactsPlay.WithTags("gather-facts")
-	// out = append(out, *gatherFactsPlay)
+	gatherFactsPlay := ansible.NewPlay("gather facts", "all")
+	gatherFactsPlay.GatherFacts = true
+	gatherFactsPlay.AnyErrorsFatal = false
+	gatherFactsPlay.Become = false
+	task := ansible.Task{
+		Name: "debug",
+		Module: map[string]ansible.ModuleArgs{
+			"debug": map[string]interface{}{
+				"msg": "debug...",
+			},
+		},
+	}
+	gatherFactsPlay.AddTasks(task)
+	gatherFactsPlay.AddTags("gather-facts")
+	out = append(out, *gatherFactsPlay)
 
 	for _, compName := range p.order {
 		c, exists := p.DefaultComponents[compName]
@@ -249,7 +256,8 @@ func (p *Product) GenSail() (ansible.Playbook, error) {
 		play, err := c.GenAnsiblePlay()
 
 		// Todo, make it configurable
-		play.AnyErrorsFatal = false
+		play.SetAnyErrorsFatal(false)
+		play.SetGatherFacts(false)
 
 		if err != nil {
 			msg := fmt.Sprintf("gen ansible playbook for component (%s) failed, err: %s", c.Name, err)

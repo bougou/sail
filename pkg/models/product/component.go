@@ -178,9 +178,9 @@ func (c *Component) GenAnsiblePlay() (*ansible.Play, error) {
 	// Note, we use the component name as the default ansible group name.
 	hostsPattern := fmt.Sprintf("{{ _ansiblepattern_%s | default('%s') }}", strings.ReplaceAll(c.Name, "-", "_"), c.Name)
 	play := ansible.NewPlay(c.Name, hostsPattern)
-	play.WithTags("play-" + c.Name)
+	play.AddTags("play-" + c.Name)
 	if c.Group != "" {
-		play.WithTags(c.Group)
+		play.AddTags(c.Group)
 	}
 
 	for _, roleName := range c.GetRoles() {
