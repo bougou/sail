@@ -324,16 +324,16 @@ elasticsearch:
 
 所以，对于 `enabled: true` 的组件，不需要在组件的 Service 下面配置 `host` 信息。
 
-并且不管是否使用了外部组件，Sail 都不建议你在实际的安装脚本中直接应用的 `services` 下的字段来作为连接地址，建议你使用 `computed` 下的字段。
+并且不管是否使用了外部组件，Sail 都不建议你在实际的安装脚本中直接引用 `services` 下的字段来作为连接地址，建议你使用 `computed` 下的字段。
 
 ### 组件 Computed
 
-Computed 与 Services 相关。
+Computed 字段 与 Services 字段相关。
 Computed 的键名和 Services 的键名一一对应。
 
 Sail 会对组件的 Services 下声明的所有 Service 进行计算，将计算后的 ServiceComputed 设置给 Computed 对应的服务。
 
-永远不要直接修改 Computed 下面的字段。
+永远不要直接修改 Computed 下面的字段，修改了也没有意义，会被 Sail 覆盖掉。
 
 根据组件 `enabled` 和 `external` 的不同配置，Sail 对服务的计算逻辑也不一样。
 
@@ -394,11 +394,11 @@ mysql:
         - "tcp://ipaddr-or-hostname:3306/"
 ```
 
-你应该在 Ansible 和 Helm 中引用组件的 computed 下的字段用于访问相关的服务。
+你应该在 Ansible 和 Helm 中引用组件的 computed 下的字段用于访问配置相关的服务地址。
 
 比如在 Ansible 的 Jinja2 模板中，你可以使用下面的格式：
 
-```j2
+```jinja2
 db_host: "{{ mysql['computed']['default']['host'] }}"
 db_port: {{ mysql['computed']['default']['port'] }}
 ```
@@ -497,7 +497,7 @@ elasticsearch:
 elasticsearch:
   computed:
     cluster:
-      scheme: tcp
+      scheme: http
       host: 192.168.1.10
       port: 9300
       addr: 192.168.1.10:9300
@@ -511,15 +511,15 @@ elasticsearch:
         - 192.168.1.11:9300
         - 192.168.1.12:9300
       endpoints:
-        - tcp://192.168.1.10:9300
-        - tcp://192.168.1.11:9300
-        - tcp://192.168.1.12:9300
+        - http://192.168.1.10:9300
+        - http://192.168.1.11:9300
+        - http://192.168.1.12:9300
       urls:
-        - tcp://192.168.1.10:9300/
-        - tcp://192.168.1.11:9300/
-        - tcp://192.168.1.12:9300/
+        - http://192.168.1.10:9300/
+        - http://192.168.1.11:9300/
+        - http://192.168.1.12:9300/
     default:
-      scheme: tcp
+      scheme: http
       host: 192.168.1.11
       port: 9200
       addr: 192.168.1.11:9200
@@ -533,12 +533,12 @@ elasticsearch:
         - 192.168.1.11:9200
         - 192.168.1.12:9200
       endpoints:
-        - tcp://192.168.1.10:9200
-        - tcp://192.168.1.11:9200
-        - tcp://192.168.1.12:9200
+        - http://192.168.1.10:9200
+        - http://192.168.1.11:9200
+        - http://192.168.1.12:9200
       urls:
-        - tcp://192.168.1.10:9200/
-        - tcp://192.168.1.11:9200/
-        - tcp://192.168.1.12:9200/
+        - http://192.168.1.10:9200/
+        - http://192.168.1.11:9200/
+        - http://192.168.1.12:9200/
 
 ```
