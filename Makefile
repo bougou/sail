@@ -24,10 +24,10 @@ build: fmt vet
 
 # Cross compiler
 build-all: fmt vet
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(OUTPUT_DIR)/sail_$(APP_VERSION)_linux_amd64 ./cmd/sail
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -o $(OUTPUT_DIR)/sail_$(APP_VERSION)_linux_arm64 ./cmd/sail
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -a -o $(OUTPUT_DIR)/sail_$(APP_VERSION)_darwin_amd64 ./cmd/sail
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -a -o $(OUTPUT_DIR)/sail_$(APP_VERSION)_darwin_arm64 ./cmd/sail
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-linux-amd64 ./cmd/sail
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-linux-arm64 ./cmd/sail
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-darwin-amd64 ./cmd/sail
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-darwin-arm64 ./cmd/sail
 
 # Run go fmt against code
 fmt:
