@@ -16,7 +16,7 @@ The generated `.sail.yaml` playbook looks like the following. For each component
 - name: kafka
   hosts: "{{ _ansiblepattern_kafka | default('kafka') }}"
   any_errors_fatal: false
-  gather_facts: true
+  gather_facts: false
   become: false
   roles:
     - role: kafka

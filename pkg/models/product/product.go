@@ -244,7 +244,7 @@ func (p *Product) GenSail() (ansible.Playbook, error) {
 		},
 	}
 	gatherFactsPlay.AddTasks(task)
-	gatherFactsPlay.AddTags("gather-facts")
+	gatherFactsPlay.AddTags("gather-facts", "always")
 	out = append(out, *gatherFactsPlay)
 
 	for _, compName := range p.order {
