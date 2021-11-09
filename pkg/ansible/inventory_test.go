@@ -59,7 +59,6 @@ func TestInventory_Json(t *testing.T) {
 
 	y, _ := yaml.Marshal(i)
 	fmt.Println(string(y))
-	t.Error()
 }
 
 func TestInventoryYaml(t *testing.T) {
@@ -100,6 +99,4 @@ a:
 
 	j, _ := json.MarshalIndent(i, "", "  ")
 	fmt.Println(string(j))
-
-	t.Error()
 }

@@ -86,22 +86,24 @@ func (o *ConfUpdateOptions) Run() error {
 
 	zone := target.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if err := zone.Load(); err != nil {
-		msg := fmt.Sprintf("zone.Load failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("zone.Load failed, err: %s", err)
 	}
 
 	m, err := options.ParseHostsOptions(o.Hosts)
 	if err != nil {
-		msg := fmt.Sprintf("parse hosts option failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("parse hosts option failed, err: %s", err)
 	}
-	zone.PatchActionHostsMap(m)
+	if err := zone.PatchActionHostsMap(m); err != nil {
+		return fmt.Errorf("patch hosts failed, err: %s", err)
+	}
 
 	if components, err := options.ParseComponentsOption(o.Components); err != nil {
 		return fmt.Errorf("parse component options failed, err: %s", err)
 	} else {
 		for c := range components {
-			zone.Product.SetComponentEnabled(c, true)
+			if err := zone.Product.SetComponentEnabled(c, true); err != nil {
+				return fmt.Errorf("update component enabled to true failed, err: %s", err)
+			}
 		}
 	}
 
@@ -109,7 +111,9 @@ func (o *ConfUpdateOptions) Run() error {
 		return fmt.Errorf("parse component options failed, err: %s", err)
 	} else {
 		for c := range components {
-			zone.Product.SetComponentEnabled(c, false)
+			if err := zone.Product.SetComponentEnabled(c, false); err != nil {
+				return fmt.Errorf("update component enabled to false failed, err: %s", err)
+			}
 		}
 	}
 
@@ -117,7 +121,9 @@ func (o *ConfUpdateOptions) Run() error {
 		return fmt.Errorf("parse component options failed, err: %s", err)
 	} else {
 		for c := range components {
-			zone.Product.SetComponentExternalEnabled(c, true)
+			if err := zone.Product.SetComponentExternalEnabled(c, true); err != nil {
+				return fmt.Errorf("update component external to true failed, err: %s", err)
+			}
 		}
 	}
 
@@ -125,13 +131,14 @@ func (o *ConfUpdateOptions) Run() error {
 		return fmt.Errorf("parse component options failed, err: %s", err)
 	} else {
 		for c := range components {
-			zone.Product.SetComponentExternalEnabled(c, false)
+			if err := zone.Product.SetComponentExternalEnabled(c, false); err != nil {
+				return fmt.Errorf("update component external to false failed, err: %s", err)
+			}
 		}
 	}
 
 	if err := zone.Dump(); err != nil {
-		msg := fmt.Sprintf("zone.Dump failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("zone.Dump failed, err: %s", err)
 	}
 
 	return nil

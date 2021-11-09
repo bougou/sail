@@ -70,8 +70,7 @@ func (s *Service) Check() error {
 		errmsgs = append(errmsgs, err.Error())
 	}
 
-	msg := fmt.Sprintf("check service (%s) failed, err: %s", s.Name, strings.Join(errmsgs, "; "))
-	return errors.New(msg)
+	return fmt.Errorf("check service (%s) failed, err: %s", s.Name, strings.Join(errmsgs, "; "))
 }
 
 // ServiceComputed represents the computed configuration for a service.

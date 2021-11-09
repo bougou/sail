@@ -1,7 +1,6 @@
 package confcreate
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -38,11 +37,11 @@ func NewCmdConfCreate(sailOption *models.SailOption) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&o.TargetName, "target", "t", o.TargetName, "the target name")
-	cmd.MarkFlagRequired("target")
+	_ = cmd.MarkFlagRequired("target")
 	cmd.Flags().StringVarP(&o.ZoneName, "zone", "z", o.ZoneName, "the zone name")
-	cmd.MarkFlagRequired("zone")
+	_ = cmd.MarkFlagRequired("zone")
 	cmd.Flags().StringVarP(&o.ProductName, "product", "p", o.ProductName, "the product name")
-	cmd.MarkFlagRequired("product")
+	_ = cmd.MarkFlagRequired("product")
 
 	cmd.Flags().StringVar(&o.InstallDir, "install-dir", defaultInstallDir, "the install dir")
 	cmd.Flags().StringVar(&o.DataDir, "data-dir", defaultDataDir, "the data dir")
@@ -100,8 +99,7 @@ func (o *ConfCreateOptions) Run() error {
 
 	zone := target.NewZone(o.sailOption, o.TargetName, o.ZoneName)
 	if _, err := os.Stat(zone.ZoneDir); !os.IsNotExist(err) {
-		msg := fmt.Sprintf("target/zone (%s/%s) already exists, found zone dir: %s, remove the dir if you want to recreate the zone", o.TargetName, o.ZoneName, zone.ZoneDir)
-		return errors.New(msg)
+		return fmt.Errorf("target/zone (%s/%s) already exists, found zone dir: %s, remove the dir if you want to recreate the zone", o.TargetName, o.ZoneName, zone.ZoneDir)
 	}
 
 	zone.ZoneMeta = &target.ZoneMeta{
@@ -110,14 +108,12 @@ func (o *ConfCreateOptions) Run() error {
 	}
 
 	if err := zone.LoadNew(); err != nil {
-		msg := fmt.Sprintf("zone.Load failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("zone.Load failed, err: %s", err)
 	}
 
 	m, err := options.ParseHostsOptions(o.Hosts)
 	if err != nil {
-		msg := fmt.Sprintf("parse hosts option failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("parse hosts option failed, err: %s", err)
 	}
 
 	platform := cmdb.Platform{
@@ -134,8 +130,7 @@ func (o *ConfCreateOptions) Run() error {
 	}
 
 	if err := zone.Dump(); err != nil {
-		msg := fmt.Sprintf("dump zone failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("dump zone failed, err: %s", err)
 	}
 
 	return nil

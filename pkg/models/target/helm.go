@@ -230,7 +230,7 @@ func (zone *Zone) prepareProductChartTemplates() error {
 		roleDir := path.Join(zone.Product.RolesDir, roleName)
 		roleHelmTemplatesDir := path.Join(roleDir, "helm", "templates")
 
-		filepath.WalkDir(roleHelmTemplatesDir, func(filepath string, entry fs.DirEntry, err error) error {
+		if err := filepath.WalkDir(roleHelmTemplatesDir, func(filepath string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -245,8 +245,9 @@ func (zone *Zone) prepareProductChartTemplates() error {
 				return fmt.Errorf("copy file failed, err: %s", err)
 			}
 			return nil
-		})
-
+		}); err != nil {
+			return fmt.Errorf("traverse role hlem templates dir failed, err: %s", err)
+		}
 	}
 
 	return nil
@@ -287,7 +288,7 @@ func (zone *Zone) prepareProductChartCRDs() error {
 		roleDir := path.Join(zone.Product.RolesDir, roleName)
 		roleHelmCRDsDir := path.Join(roleDir, "helm", "crds")
 
-		filepath.WalkDir(roleHelmCRDsDir, func(filepath string, entry fs.DirEntry, err error) error {
+		if err := filepath.WalkDir(roleHelmCRDsDir, func(filepath string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -302,7 +303,9 @@ func (zone *Zone) prepareProductChartCRDs() error {
 				return fmt.Errorf("copy file failed, err: %s", err)
 			}
 			return nil
-		})
+		}); err != nil {
+			return fmt.Errorf("traverse role hlem crds dir failed, err: %s", err)
+		}
 	}
 
 	return nil

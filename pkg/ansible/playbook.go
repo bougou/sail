@@ -1,7 +1,6 @@
 package ansible
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -14,14 +13,12 @@ type Playbook []Play
 func NewPlaybookFromFile(file string) (*Playbook, error) {
 	b, err := os.ReadFile(file)
 	if err != nil {
-		msg := fmt.Sprintf("read file failed, err: %s", err)
-		return nil, errors.New(msg)
+		return nil, fmt.Errorf("read file failed, err: %s", err)
 	}
 
 	playbook := &Playbook{}
 	if err := yaml.Unmarshal(b, playbook); err != nil {
-		msg := fmt.Sprintf("yaml unmarshal failed, err: %s", err)
-		return nil, errors.New(msg)
+		return nil, fmt.Errorf("yaml unmarshal failed, err: %s", err)
 	}
 
 	return playbook, nil

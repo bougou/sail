@@ -1,7 +1,6 @@
 package options
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -44,8 +43,7 @@ func ParseComponentsOption(componentsOptions []string) (map[string]string, error
 				componentName, _, componentLongVersion := s[0], s[1], s[2]
 				out[componentName] = componentLongVersion
 			default:
-				msg := fmt.Sprintf("wrong --component option value, %s", componentOpt)
-				return nil, errors.New(msg)
+				return nil, fmt.Errorf("wrong --component option value, %s", componentOpt)
 			}
 		}
 
@@ -66,7 +64,9 @@ func ParseChoosedComponents(zone *target.Zone, components []string, ansible bool
 		}
 
 		if componentVersion != "" {
-			zone.SetComponentVersion(componentName, componentVersion)
+			if err := zone.SetComponentVersion(componentName, componentVersion); err != nil {
+				return nil, nil, fmt.Errorf("set component (%s) version to (%s) failed, err: %s", componentName, componentVersion, err)
+			}
 		}
 	}
 

@@ -115,19 +115,6 @@ func (g *Group) AddChildGroup(group *Group) {
 	g.Children.SetGroup(group)
 }
 
-// Todo, support golang generic
-func unique(array []string) []string {
-	keys := make(map[string]bool)
-	out := []string{}
-	for _, item := range array {
-		if _, ok := keys[item]; !ok {
-			keys[item] = true
-			out = append(out, item)
-		}
-	}
-	return out
-}
-
 func (g *Group) AddDefaultVars() {
 	g.AddVars(map[string]interface{}{
 		"ansible_port": 22,

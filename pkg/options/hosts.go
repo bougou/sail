@@ -1,7 +1,6 @@
 package options
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -72,8 +71,7 @@ func ParseHostsOptions(hostsOptions []string) (map[string][]ansible.ActionHosts,
 				out[componentName] = append(out[componentName], ah)
 			}
 		default:
-			msg := fmt.Sprintf("wrong --hosts option value, %s", hostsOpt)
-			return nil, errors.New(msg)
+			return nil, fmt.Errorf("wrong --hosts option value, %s", hostsOpt)
 		}
 	}
 

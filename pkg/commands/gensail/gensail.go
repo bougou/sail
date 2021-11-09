@@ -28,7 +28,7 @@ func NewCmdGenSail(sailOption *models.SailOption) *cobra.Command {
 
 	defaultProductName := ""
 	cmd.Flags().StringVarP(&o.productName, "product", "p", defaultProductName, "the product name")
-	cmd.MarkFlagRequired("playbook")
+	_ = cmd.MarkFlagRequired("playbook")
 
 	return cmd
 }
@@ -37,10 +37,7 @@ type GenSailOptions struct {
 	productName string
 	productDir  string
 
-	args        []string
-	productsDir string
-	targetsDir  string
-	sailOption  *models.SailOption
+	sailOption *models.SailOption
 }
 
 func NewGenSailOptions(sailOption *models.SailOption) *GenSailOptions {
@@ -57,8 +54,7 @@ func (o *GenSailOptions) Complete(cmd *cobra.Command, args []string) error {
 	o.productDir = path.Join(o.sailOption.ProductsDir, o.productName)
 	stat, err := os.Stat(o.productDir)
 	if err != nil || !stat.IsDir() {
-		msg := fmt.Sprintf("not found dir of product, %s does not exist", o.productDir)
-		return errors.New(msg)
+		return fmt.Errorf("not found dir of product, %s does not exist", o.productDir)
 	}
 
 	return nil
@@ -71,14 +67,12 @@ func (o *GenSailOptions) Validate() error {
 func (o *GenSailOptions) Run() error {
 	product := product.NewProduct(o.productName, o.sailOption.ProductsDir)
 	if err := product.Init(); err != nil {
-		msg := fmt.Sprintf("product init failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("product init failed, err: %s", err)
 	}
 
 	playbook, err := product.GenSail()
 	if err != nil {
-		msg := fmt.Sprintf("gen sail playbook failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("gen sail playbook failed, err: %s", err)
 	}
 
 	b, err := common.Encode("yaml", playbook)

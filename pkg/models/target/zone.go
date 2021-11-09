@@ -242,8 +242,7 @@ func (zone *Zone) RenderSailPlaybook() error {
 	product := zone.Product
 	playbook, err := product.GenSail()
 	if err != nil {
-		msg := fmt.Sprintf("gen sail playbook failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("gen sail playbook failed, err: %s", err)
 	}
 
 	b, err := common.Encode("yaml", playbook)
@@ -353,7 +352,7 @@ func (zone *Zone) PatchActionHosts(groupName string, hostsPatch *ansible.ActionH
 			group.AddHost(host)
 			group.SetHostVars(host, map[string]interface{}{})
 		}
-		zone.CMDB.Inventory.AddGroup(group)
+		_ = zone.CMDB.Inventory.AddGroup(group)
 	}
 }
 
@@ -371,7 +370,7 @@ func (zone *Zone) BuildInventory(hostsMap map[string][]string) error {
 			group.SetHostVars(host, map[string]interface{}{})
 		}
 
-		zone.CMDB.Inventory.AddGroup(group)
+		_ = zone.CMDB.Inventory.AddGroup(group)
 	}
 
 	return nil

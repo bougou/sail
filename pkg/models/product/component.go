@@ -1,7 +1,6 @@
 package product
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -140,8 +139,7 @@ func (c *Component) Check() error {
 		errmsgs = append(errmsgs, err.Error())
 	}
 
-	msg := fmt.Sprintf("check component (%s) external (%v) failed, err: %s", c.Name, c.External, strings.Join(errmsgs, "; "))
-	return errors.New(msg)
+	return fmt.Errorf("check component (%s) external (%v) failed, err: %s", c.Name, c.External, strings.Join(errmsgs, "; "))
 }
 
 func (c *Component) Compute(cm *cmdb.CMDB) error {
@@ -149,8 +147,7 @@ func (c *Component) Compute(cm *cmdb.CMDB) error {
 	for svcName, svc := range c.Services {
 		svcComputed, err := svc.Compute(c.External, cm)
 		if err != nil {
-			msg := fmt.Sprintf("compute service (%s) failed, err: %s", svcName, err)
-			return errors.New(msg)
+			return fmt.Errorf("compute service (%s) failed, err: %s", svcName, err)
 		}
 
 		(c.Computed)[svcName] = *svcComputed
@@ -203,27 +200,23 @@ func (c *Component) GenAnsiblePlay() (*ansible.Play, error) {
 func newComponentFromValue(componentName string, componentValue interface{}) (*Component, error) {
 	b, err := yaml.Marshal(componentValue)
 	if err != nil {
-		msg := fmt.Sprintf("marshal failed, err: %s", err)
-		return nil, errors.New(msg)
+		return nil, fmt.Errorf("marshal failed, err: %s", err)
 	}
 
 	c := NewComponent(componentName)
 	if err := yaml.Unmarshal(b, c); err != nil {
-		msg := fmt.Sprintf("yaml unmarshal failed, err: %s", err)
-		return nil, errors.New(msg)
+		return nil, fmt.Errorf("yaml unmarshal failed, err: %s", err)
 	}
 
 	for svcName, s := range c.Services {
 		b, err := yaml.Marshal(s)
 		if err != nil {
-			msg := fmt.Sprintf("marshal failed, err: %s", err)
-			return nil, errors.New(msg)
+			return nil, fmt.Errorf("marshal failed, err: %s", err)
 		}
 
 		outs := NewService(componentName, svcName)
 		if err := yaml.Unmarshal(b, outs); err != nil {
-			msg := fmt.Sprintf("yaml unmarshal failed, err: %s", err)
-			return nil, errors.New(msg)
+			return nil, fmt.Errorf("yaml unmarshal failed, err: %s", err)
 		}
 
 		(c.Services)[svcName] = *outs

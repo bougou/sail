@@ -75,7 +75,7 @@ func (o *ApplyOptions) Validate() error {
 		return errors.New("must specify target name")
 	}
 	if o.ZoneName == "" && !o.AllZones {
-		return errors.New("must specify zone name, or choose all zones")
+		return errors.New("must specify zone name, or choose all zones by sepcify '--all-zones' option")
 	}
 	return nil
 }
@@ -116,13 +116,11 @@ func (o *ApplyOptions) run(targetName string, zoneName string, args []string) er
 
 	serverComponents, podComponents, err := options.ParseChoosedComponents(zone, o.Components, o.Ansible, o.Helm)
 	if err != nil {
-		msg := fmt.Sprintf("parse component option failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("parse component option failed, err: %s", err)
 	}
 
 	if err := zone.Dump(); err != nil {
-		msg := fmt.Sprintf("zone.Dump failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("zone.Dump failed, err: %s", err)
 	}
 
 	var ansiblePlaybookTags []string

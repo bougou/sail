@@ -36,7 +36,7 @@ func NewCmdGenCert(sailOption *models.SailOption) *cobra.Command {
 	cmd.Flags().StringVarP(&o.OutputDir, "output-dir", "o", o.OutputDir, "the output dir")
 
 	cmd.Flags().StringVarP(&o.CAName, "ca", "", o.CAName, "CA name")
-	cmd.MarkFlagRequired("ca")
+	_ = cmd.MarkFlagRequired("ca")
 	cmd.Flags().StringArrayVarP(&o.Names, "name", "n", o.Names, "the commonName for the cert")
 	return cmd
 }
@@ -69,8 +69,7 @@ func (o *GenCertOptions) Complete(cmd *cobra.Command, args []string) error {
 
 	if o.OutputDir == "" {
 		if o.TargetName == "" || o.ZoneName == "" {
-			msg := fmt.Sprintf("must specify --output-dir or specify target/zone name")
-			return errors.New(msg)
+			return errors.New("must specify --output-dir or specify target/zone name")
 		}
 
 		zone := target.NewZone(o.sailOption, o.TargetName, o.ZoneName)
@@ -100,21 +99,22 @@ func (o *GenCertOptions) genCA() error {
 	caKeyFile := path.Join(o.OutputDir, o.CAName+cert.KeyFileSuffix)
 	caCertFile := path.Join(o.OutputDir, o.CAName+cert.CertFileSuffix)
 	if _, err := os.Stat(caKeyFile); !errors.Is(err, os.ErrNotExist) {
-		msg := fmt.Sprintf("ca key file (%s) already exist, remove it if you want to continue", caKeyFile)
-		return errors.New(msg)
+		return fmt.Errorf("ca key file (%s) already exist, remove it if you want to continue", caKeyFile)
 	}
 	if _, err := os.Stat(caCertFile); !errors.Is(err, os.ErrNotExist) {
-		msg := fmt.Sprintf("ca cert file (%s) already exist, remove it if you want to continue", caCertFile)
-		return errors.New(msg)
+		return fmt.Errorf("ca cert file (%s) already exist, remove it if you want to continue", caCertFile)
 	}
 
 	fmt.Printf("generating ca key and cert: %s\n", o.CAName)
 	kc, err := cert.NewCA(o.CAName, CertValidDays)
 	if err != nil {
-		msg := fmt.Sprintf("generate CA key and cert failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("generate CA key and cert failed, err: %s", err)
 	}
-	kc.Dump(o.OutputDir)
+
+	if err := kc.Dump(o.OutputDir); err != nil {
+		return fmt.Errorf("dump failed, err: %s", err)
+	}
+
 	return nil
 }
 
@@ -123,22 +123,21 @@ func (o *GenCertOptions) genCert() error {
 	caCertFile := path.Join(o.OutputDir, o.CAName+cert.CertFileSuffix)
 	caKC, err := cert.LoadKeyCertPEMFile(caKeyFile, caCertFile)
 	if err != nil {
-		msg := fmt.Sprintf("load CA key and cert file failed, err: %s", err)
-		return errors.New(msg)
+		return fmt.Errorf("load CA key and cert file failed, err: %s", err)
 	}
 	for _, name := range o.Names {
 		fmt.Printf("generating key and cert for: %s\n", name)
 
 		kc := cert.NewKeyCert(name)
 		if err := kc.GenKey(); err != nil {
-			msg := fmt.Sprintf("generate private key for %s failed, err: %s", name, err)
-			return errors.New(msg)
+			return fmt.Errorf("generate private key for %s failed, err: %s", name, err)
 		}
 		if err := kc.SignedByCA(caKC, CertValidDays); err != nil {
-			msg := fmt.Sprintf("the CA sign the cert failed, err: %s", err)
-			return errors.New(msg)
+			return fmt.Errorf("the CA sign the cert failed, err: %s", err)
 		}
-		kc.Dump(o.OutputDir)
+		if err := kc.Dump(o.OutputDir); err != nil {
+			return fmt.Errorf("dump failed, err: %s", err)
+		}
 	}
 	return nil
 }

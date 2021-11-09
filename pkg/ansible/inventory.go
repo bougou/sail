@@ -26,7 +26,8 @@ func NewInventory() *Inventory {
 	}
 }
 
-// NewAnsibleInventory create a top level inventory
+// NewAnsibleInventory create a top level inventory.
+// You should call NewInventory to create other level inventory.
 func NewAnsibleInventory() *Inventory {
 	i := NewInventory()
 	i.AddAllGroup()
@@ -38,7 +39,9 @@ func NewAnsibleInventory() *Inventory {
 // Only the top level inventory should call this method.
 func (i *Inventory) AddAllGroup() {
 	g := NewGroup(AllGroupName)
-	i.AddGroup(g)
+
+	// just ingore error check for existed "all" group
+	_ = i.AddGroup(g)
 }
 
 // MarshalJSON provides custom method when json.Marshal(i).
