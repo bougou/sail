@@ -1,10 +1,16 @@
 APP_VERSION ?= $(shell git describe --abbrev=5 --dirty --tags --always)
+GIT_COMMIT := $(shell git rev-parse --short=8 HEAD)
+BUILD_TIME := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 BINDIR := $(PWD)/bin
 OUTPUT_DIR := $(PWD)/_output
 
 GOOS ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
 GOARCH ?= amd64
+
+LDFLAGS := $(LDFLAGS) -X github.com/bougou/sail/pkg/version.Version=$(APP_VERSION)
+LDFLAGS := $(LDFLAGS) -X github.com/bougou/sail/pkg/version.Commit=$(GIT_COMMIT)
+LDFLAGS := $(LDFLAGS) -X github.com/bougou/sail/pkg/version.BuildAt=$(BUILD_TIME)
 
 PATH := $(BINDIR):$(PATH)
 SHELL := env PATH='$(PATH)' /bin/sh
@@ -20,14 +26,14 @@ test: fmt vet
 
 # Build sail binary
 build: fmt vet
-	go build -o $(OUTPUT_DIR)/sail ./cmd/sail
+	go build -ldflags "$(LDFLAGS)" -o $(OUTPUT_DIR)/sail ./cmd/sail
 
 # Cross compiler
 build-all: fmt vet
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-linux-amd64 ./cmd/sail
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-linux-arm64 ./cmd/sail
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-darwin-amd64 ./cmd/sail
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-darwin-arm64 ./cmd/sail
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-linux-amd64 ./cmd/sail
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-linux-arm64 ./cmd/sail
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-darwin-amd64 ./cmd/sail
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -a -o $(OUTPUT_DIR)/sail-$(APP_VERSION)-darwin-arm64 ./cmd/sail
 
 # Run go fmt against code
 fmt:

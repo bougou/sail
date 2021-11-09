@@ -15,6 +15,7 @@ import (
 	"github.com/bougou/sail/pkg/commands/upgrade"
 	"github.com/bougou/sail/pkg/commands/x"
 	"github.com/bougou/sail/pkg/models"
+	"github.com/bougou/sail/pkg/version"
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/spf13/cobra"
@@ -24,6 +25,7 @@ import (
 
 const defaultSailRC string = ".sailrc"
 const envPrefix = "SAIL"
+const homePage = "https://github.com/bougou/sail"
 
 var (
 	cfgFile string
@@ -31,15 +33,27 @@ var (
 
 func NewSailCommand() *cobra.Command {
 	sailOption := &models.SailOption{}
+	showVersion := false
 
 	rootCmd := &cobra.Command{
 		Use:   "sail",
 		Short: "sail",
-		Long:  "sail\n\nFind more information at: https://github.com/bougou/sail\n\n",
+		Long:  fmt.Sprintf("sail\n\nFind more information at: %s\n\n", homePage),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if showVersion {
+				fmt.Printf("Version: %s\n", version.Version)
+				fmt.Printf("Commit: %s\n", version.Commit)
+				fmt.Printf("BuildAt: %s\n", version.BuildAt)
+				return nil
+			}
+
 			return initConfig(cmd)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+			if showVersion {
+				return
+			}
+
 			fmt.Println("you have to specify a subcommand for sail")
 		},
 	}
@@ -53,6 +67,7 @@ func NewSailCommand() *cobra.Command {
 	defaultProductsDir := filepath.Join(filepath.Dir(execFile), "products")
 	defaultPackagesDir := filepath.Join(filepath.Dir(execFile), "packages")
 
+	rootCmd.PersistentFlags().BoolVarP(&showVersion, "version", "v", false, "show version")
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "", "", "config file, default $HOME/.sailrc")
 	rootCmd.PersistentFlags().StringVarP(&sailOption.TargetsDir, "targets-dir", "", defaultTargetsDir, "the targets dir")
 	rootCmd.PersistentFlags().StringVarP(&sailOption.ProductsDir, "products-dir", "", defaultProductsDir, "the products dir")
