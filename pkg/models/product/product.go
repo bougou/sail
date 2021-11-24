@@ -370,6 +370,7 @@ func (p *Product) loadComponentFile(file string) error {
 	return nil
 }
 
+// LoadZone will fill zone's specific variables from zoneVarsFile into the Vars and Components fields of product p.
 func (p *Product) LoadZone(zoneVarsFile string) error {
 	b, err := os.ReadFile(zoneVarsFile)
 	if err != nil {
@@ -382,12 +383,22 @@ func (p *Product) LoadZone(zoneVarsFile string) error {
 	}
 
 	for varKey, varValue := range m {
-		// varKey is not a component
+		// varKey is not a component name
 		if !p.HasComponent(varKey) {
-			p.Vars[varKey] = varValue
+			// determine whether the value of the key (varKey) is a map
+			dst, ok := p.Vars[varKey].(map[string]interface{})
+			if ok {
+				if err := mergo.Merge(&dst, varValue, mergo.WithOverride, mergo.WithOverwriteWithEmptyValue); err != nil {
+					return fmt.Errorf("merge var (%s) failed, err: %s", varKey, err)
+				}
+			} else {
+				p.Vars[varKey] = varValue
+			}
+
 			continue
 		}
 
+		// varKey is a component name
 		comp, err := newComponentFromValue(varKey, varValue)
 		if err != nil {
 			return err
@@ -400,9 +411,10 @@ func (p *Product) LoadZone(zoneVarsFile string) error {
 			return fmt.Errorf("merge failed for component (%s) failed, err: %s", varKey, err)
 		}
 
+		// make some auto corrections
 		c := p.Components[varKey]
 		if c.Enabled && c.External {
-			fmt.Printf("234: enabled and external of component can not be both true, automatically set enabled to false for component (%s)\n", varKey)
+			fmt.Printf("enabled and external of component can not be both true, automatically set enabled to false for component (%s)\n", varKey)
 			c.Enabled = false
 		}
 
