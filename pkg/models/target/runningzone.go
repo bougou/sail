@@ -149,7 +149,7 @@ func (rz *RunningZone) RunAnsiblePlaybook(args []string) error {
 	playbookFile := rz.zone.PlaybookFile(rz.playbook)
 	playbook, err := ansible.NewPlaybookFromFile(playbookFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("NewPlaybookFromFile failed, err: %s", err)
 	}
 	if rz.startAtPlay != "" {
 		playbookTags := playbook.PlaysTagsStartAt(rz.startAtPlay)

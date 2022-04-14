@@ -13,13 +13,6 @@ type Play struct {
 	Tags           []string  `yaml:"tags,omitempty"`
 }
 
-type Task struct {
-	Name   string `yaml:"name"`
-	Module `json:",inline" yaml:",inline"`
-}
-type Module map[string]ModuleArgs
-type ModuleArgs map[string]interface{}
-
 func NewPlay(name string, hostsstr string) *Play {
 	return &Play{
 		Name: name,

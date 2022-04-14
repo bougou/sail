@@ -12,11 +12,14 @@ import (
 // The returned map can be used to update cmdb inventory.
 //
 // eg options:
-//    --hosts A,B/10.0.0.1,10.0.0.2 --hosts +C/10.0.0.3,10.0.0.4 --hosts -C,D,E/10.0.0.4
+//    --hosts A,B/10.0.0.1,10.0.0.2 --hosts +C/10.0.0.3,10.0.0.4 --hosts -C,D,E/10.0.0.4 --hosts 10.0.0.1
 //
 // result:
 //
 //    {
+//      "_cluster": [
+//        { "Aciton": "update", "Hosts": ["10.0.0.1"] },
+//      ],
 //      "A": [
 //        { "Aciton": "update", "Hosts": ["10.0.0.1", "10.0.0.2"] },
 //      ],
