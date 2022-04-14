@@ -132,19 +132,25 @@ func initConfig(cmd *cobra.Command) error {
 	return nil
 }
 
-// Use viper's value if found to SET cobra flags which are not set(NOT CHANGED).
+// Use viper's value (if found) to SET cobra flags which are not specified the cmdline (not changed).
 func bindFlags(cmd *cobra.Command, v *viper.Viper) {
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		// Environment variables can't have dashes in them, so bind them to their equivalent
-		// keys with underscores, e.g. --favorite-color to <envPrefix>_FAVORITE_COLOR
+		// Environment variables can't have dashes (minus sign -) in them,
+		// so bind them to their equivalent keys with underscores,
+		// e.g. --favorite-color to <envPrefix>_FAVORITE_COLOR
 		if strings.Contains(f.Name, "-") {
 			envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
 			_ = v.BindEnv(f.Name, fmt.Sprintf("%s_%s", envPrefix, envVarSuffix))
 		}
 
 		// Apply the viper config value to the flag when the flag is not set and viper has a value
+		//
 		// If f.Changed is true which means the the flag is specified when run the cmd,
 		// then so just use it, because its priority is highest.
+		//
+		// !f.Changed means the flag is NOT specified on the cmd line
+		// v.IsSet(f.Name) means viper had parsed out an value for the flag
+		// So, reset the value (parsed viper) to cobra cmd flag.
 		if !f.Changed && v.IsSet(f.Name) {
 			val := v.Get(f.Name)
 			_ = cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))

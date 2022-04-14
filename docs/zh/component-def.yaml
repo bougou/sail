@@ -1,0 +1,53 @@
+# 组件名称
+redis:
+  # 组件的版本
+  # 建议不要使用 v 前缀（如 v3.2.10）
+  # 在拼接软件包名字时，再按需添加 v 前缀
+  version: 3.2.10
+
+  # 是否部署该组件
+  enabled: false
+
+  # 该组件是否由外部系统提供（如使用公有云提供的服务）
+  external: false
+
+  # 该组件对外提供的服务（端口）
+  services:
+    # each key represents a serviceName, it can be any string
+    default:
+      # 服务监听端口（或者是服务对外暴露的端口）
+      port: 6379
+      # other fields
+    sentinel:
+      port: 7379
+    check:
+      port: 6479
+
+  # 组件相关的变量
+  # 任意自定义
+  vars:
+    database: 6
+    pass: 123456
+
+  # 组件相关的 Tag
+  # 任意自定义
+  # 目前与 `vars` 字段没有任何区别
+  tags: {}
+
+  # READONLY
+  app:
+    # Optional: 资源限制
+    # 用途：
+    # 1. 对于 form=server 组件，可以用于在部署该组件前对机器的资源进行检查，如果不符合要求，提示失败
+    # 2. 对于 form=pod 组件，可以用于 K8S Pod 资源声明中的值
+    resources:
+      cpu:
+        minCores: 4
+        request:
+        limit:
+      # 内存 Gigabytes
+      mem:
+        request:
+        limit:
+      disk:
+        min: 100G

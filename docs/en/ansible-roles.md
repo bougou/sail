@@ -1,20 +1,24 @@
 # ansible roles
 
-Sail uses [Ansible Roles](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html#role-directory-structure) as the building unit for sail server components.
+Sail uses [Ansible Roles](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html#role-directory-structure) as the building unit for components.
 
 You should develop an ansible role for the component that may be deployed to plain servers.
 
 ## Write ansible role for component
 
-The files of `products/<productName>/{components.yaml,components/*.yaml}` hold ONLY the definition of the components that make up the product. Those declaration files DO NOT describe how the components are installed and configured on the servers. The actual installation code for the components should be developed in ansible role.
+The files of `products/<productName>/{components.yaml,components/*.yaml}` hold ONLY the definition of the components that make up the product.
 
-I will demonstrate an ansible role I wrote. This role will show some common used patterns when writing ansible role for Sail. I will assume that you are already familar with Ansible Role, at least understand ansible role directory structure.
+Those declaration files DO NOT describe how the components are installed and configured on the servers. The actual installation code for the components should be developed in an ansible role.
 
-This role is used for deploying `etcd` (and well-known key-value store) cluster on three nodes.
+I will demonstrate one ansible role I wrote. This role will show some common used patterns when writing ansible role for Sail. I will assume that you are already familar with ansible role, at least understand the ansible role directory structure.
+
+This role is used for deploying `etcd` (an well-known key-value store) cluster on three nodes.
 
 ### Preparation
 
-1. Prepare the installation package of `etcd`. Place it under the `packages-dir` dir you specified for `sail`.
+1. Prepare the installation package of `etcd`.
+
+    Place it under the `packages-dir` dir you specified for `sail`.
 
     ```yaml
     $ cat ~/.sailrc.yaml
@@ -229,7 +233,3 @@ templates/
         state: restarted
         enabled: yes
     ```
-
-## Tips for Write Ansible Tasks
-
-- [Ansible Tips](./../ansible-tips/)
