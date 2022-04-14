@@ -24,11 +24,12 @@ components.yaml       # component declaration/variables
 components/           # component declaration/variables
 vars.yaml             # general variables, like data_dir or timezone etc
 # all component variables and general variables are called product variables
-# the product variables SHOULD be referenced by Ansible/Helm code
-# each deploy target environment will have its own copied and product variables,
-# which can be called environment configurations and the are kept under targets/<target>/<zone>/vars.yaml
+# the product variables SHOULD be referenced by Ansible/Helm templates code
+#
+# each deployed target/zone environment will have its own copied variables (environment configurations) which are kept in targets/<target>/<zone>/vars.yaml.
+#
 # `sail` will automatically keep the environment configurations and product variables have a same structure,
-# like adding new variables from product variables to environment configurations
+# like syncing new variables from product variables to environment configurations
 
 ## General
 resources/            # other resources files，like https cert files, license files, or icon images
