@@ -115,6 +115,12 @@ func (o *ConfCreateOptions) Run() error {
 	if err != nil {
 		return fmt.Errorf("parse hosts option failed, err: %s", err)
 	}
+	for k := range m {
+		if !zone.Product.HasComponent(k) && k != "_cluster" {
+			return fmt.Errorf("the product %s does not have component: %s", zone.Product.Name, k)
+		}
+		zone.Product.Components[k].Enabled = true
+	}
 
 	platform := cmdb.Platform{
 		K8S: &cmdb.K8S{

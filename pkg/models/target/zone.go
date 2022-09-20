@@ -47,6 +47,8 @@ type Zone struct {
 	PlatformsFile string
 	ComputedFile  string
 
+	ComponentsFile string
+
 	ResourcesDir string
 
 	HelmDir string
@@ -67,6 +69,8 @@ func NewZone(sailOption *models.SailOption, targetName string, zoneName string) 
 
 		TargetDir: path.Join(sailOption.TargetsDir, targetName),
 		ZoneDir:   path.Join(sailOption.TargetsDir, targetName, zoneName),
+
+		ComponentsFile: path.Join(sailOption.TargetsDir, targetName, zoneName, "components.yaml"),
 
 		VarsFile:      path.Join(sailOption.TargetsDir, targetName, zoneName, "vars.yaml"),
 		HostsFile:     path.Join(sailOption.TargetsDir, targetName, zoneName, "hosts.yaml"),
@@ -89,7 +93,7 @@ func NewZone(sailOption *models.SailOption, targetName string, zoneName string) 
 }
 
 // LoadNew fill vars to zone. The zone is treated as a newly created zone.
-// So it will ONLY load default varibles from product.
+// So it will ONLY load default variables from product.
 // This method is ONLY called when `conf-create`.
 func (zone *Zone) LoadNew() error {
 	// for newly created zone, the zone.ProductName is set by conf-create
@@ -138,6 +142,12 @@ func (zone *Zone) Load() error {
 
 	if err := p.LoadZone(zone.VarsFile); err != nil {
 		return fmt.Errorf("load zone vars failed, err: %s", err)
+	}
+
+	if _, err := os.Stat(zone.ComponentsFile); err == nil {
+		if err := p.LoadZoneComponents(zone.ComponentsFile); err != nil {
+			return fmt.Errorf("load zone components failed, err: %s", err)
+		}
 	}
 
 	zone.Product = p
@@ -218,6 +228,9 @@ func (zone *Zone) Dump() error {
 	if err := zone.RenderSailPlaybook(); err != nil {
 		errs = append(errs, err.Error())
 	}
+	if err := zone.RenderComponents(); err != nil {
+		errs = append(errs, err.Error())
+	}
 	if err := zone.RenderVars(); err != nil {
 		errs = append(errs, err.Error())
 	}
@@ -257,14 +270,29 @@ func (zone *Zone) RenderSailPlaybook() error {
 	return nil
 }
 
+func (zone *Zone) RenderComponents() error {
+	m := make(map[string]interface{})
+
+	for k, v := range zone.Product.Components {
+		m[k] = v
+	}
+
+	b, err := common.Encode("yaml", m)
+	if err != nil {
+		return fmt.Errorf("encode components failed, err: %s", err)
+	}
+
+	if err := os.WriteFile(zone.ComponentsFile, b, 0644); err != nil {
+		return fmt.Errorf("write components file failed, err: %s", err)
+	}
+
+	return nil
+}
+
 func (zone *Zone) RenderVars() error {
 	m := make(map[string]interface{})
 
 	for k, v := range zone.Product.Vars {
-		m[k] = v
-	}
-
-	for k, v := range zone.Product.Components {
 		m[k] = v
 	}
 
@@ -342,18 +370,19 @@ func (zone *Zone) PatchActionHosts(groupName string, hostsPatch *ansible.ActionH
 	if zone.CMDB.Inventory.HasGroup(groupName) {
 		group, _ := zone.CMDB.Inventory.GetGroup(groupName)
 		ansible.PatchAnsibleGroup(group, hostsPatch)
-	} else {
-		if hostsPatch.Action == "delete" {
-			return
-		}
-
-		group := ansible.NewGroup(groupName)
-		for _, host := range hostsPatch.Hosts {
-			group.AddHost(host)
-			group.SetHostVars(host, map[string]interface{}{})
-		}
-		_ = zone.CMDB.Inventory.AddGroup(group)
+		return
 	}
+
+	if hostsPatch.Action == "delete" {
+		return
+	}
+
+	group := ansible.NewGroup(groupName)
+	for _, host := range hostsPatch.Hosts {
+		group.AddHost(host)
+		group.SetHostVars(host, map[string]interface{}{})
+	}
+	_ = zone.CMDB.Inventory.AddGroup(group)
 }
 
 func (zone *Zone) BuildInventory(hostsMap map[string][]string) error {

@@ -68,6 +68,8 @@ func NewRunningZone(zone *Zone, playbookName string) *RunningZone {
 		"-e",
 		"@" + zone.VarsFile,
 		"-e",
+		"@" + zone.ComponentsFile,
+		"-e",
 		"@" + zone.ComputedFile,
 		"-e",
 		"sail_products_dir=" + zone.sailOption.ProductsDir,
@@ -210,8 +212,9 @@ func (rz *RunningZone) RunHelm(args []string) error {
 			k8s := rz.zone.GetK8SForComponent(componentName)
 
 			valuesFiles := []string{}
-			valuesFiles = append(valuesFiles, rz.zone.VarsFile)     // zone VarsFile always exists.
-			valuesFiles = append(valuesFiles, rz.zone.ComputedFile) // zone ComputedFile always exists.
+			valuesFiles = append(valuesFiles, rz.zone.VarsFile)       // zone VarsFile always exists.
+			valuesFiles = append(valuesFiles, rz.zone.ComponentsFile) // zone ComponentsFile always exists.
+			valuesFiles = append(valuesFiles, rz.zone.ComputedFile)   // zone ComputedFile always exists.
 
 			zoneGlobalValuesFile := path.Join(rz.zone.HelmDir, "values.yaml") // global helm values.yaml is OPTIONAL.
 			_, err := os.Stat(zoneGlobalValuesFile)
@@ -236,8 +239,9 @@ func (rz *RunningZone) RunHelm(args []string) error {
 		k8s := rz.zone.GetK8SForProduct()
 
 		valuesFiles := []string{}
-		valuesFiles = append(valuesFiles, rz.zone.VarsFile)     // zone VarsFile always exists.
-		valuesFiles = append(valuesFiles, rz.zone.ComputedFile) // zone ComputedFile always exists.
+		valuesFiles = append(valuesFiles, rz.zone.VarsFile)       // zone VarsFile always exists.
+		valuesFiles = append(valuesFiles, rz.zone.ComponentsFile) // zone ComponentsFile always exists.
+		valuesFiles = append(valuesFiles, rz.zone.ComputedFile)   // zone ComputedFile always exists.
 
 		zoneGlobalValuesFile := path.Join(rz.zone.HelmDir, "values.yaml") // global values.yaml is OPTIONAL.
 		_, err := os.Stat(zoneGlobalValuesFile)

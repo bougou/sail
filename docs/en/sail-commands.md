@@ -67,6 +67,17 @@ you can run `sail conf-update` manually.
 $ sail conf-update -t <targetName> -z <zoneName>
 ```
 
+### add or remove hosts for specific components
+
+```bash
+# enable k8s-node component and add a node for k8s-node component
+$ sail conf-update -t k8s -c k8s-node --hosts k8s-node/192.168.2.204
+
+# add two nodes for k8s-node component
+# note: use '+' sign before component name
+$ sail conf-update -t k8s --hosts +k8s-node/192.168.2.205,192.168.2.206
+```
+
 ## sail apply
 
 `sail apply` will execute `ansible-playbook` for the server components, and execute `helm` for the pod components.

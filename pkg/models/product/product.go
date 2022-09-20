@@ -423,6 +423,48 @@ func (p *Product) LoadZone(zoneVarsFile string) error {
 	return nil
 }
 
+func (p *Product) LoadZoneComponents(zoneComponentsFile string) error {
+	b, err := os.ReadFile(zoneComponentsFile)
+	if err != nil {
+		return fmt.Errorf("read zone components file failed, err: %s", err)
+	}
+
+	m := map[string]interface{}{}
+	if err := yaml.Unmarshal(b, &m); err != nil {
+		return fmt.Errorf("unmarshal vars for failed, err: %s", err)
+	}
+
+	for varKey, varValue := range m {
+		// varKey is not a component name
+		if !p.HasComponent(varKey) {
+			continue
+		}
+
+		// varKey is a component name
+		comp, err := newComponentFromValue(varKey, varValue)
+		if err != nil {
+			return err
+		}
+
+		// Todo, optimize the merge behaviour
+		// p.Components originally stores default components of the product,
+		// now we merge the component value loaded from zone vars file into it.
+		if err := mergo.Merge(p.Components[varKey], comp, mergo.WithOverride, mergo.WithOverwriteWithEmptyValue); err != nil {
+			return fmt.Errorf("merge failed for component (%s) failed, err: %s", varKey, err)
+		}
+
+		// make some auto corrections
+		c := p.Components[varKey]
+		if c.Enabled && c.External {
+			fmt.Printf("enabled and external of component can not be both true, automatically set enabled to false for component (%s)\n", varKey)
+			c.Enabled = false
+		}
+
+	}
+
+	return nil
+}
+
 func (p *Product) Check(cm *cmdb.CMDB) error {
 	errs := []error{}
 	for _, c := range p.Components {
