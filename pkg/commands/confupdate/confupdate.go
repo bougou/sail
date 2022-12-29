@@ -5,10 +5,9 @@ import (
 	"fmt"
 
 	"github.com/bougou/gopkg/common"
+	"github.com/bougou/sail/pkg/models"
 	"github.com/bougou/sail/pkg/models/target"
 	"github.com/bougou/sail/pkg/options"
-
-	"github.com/bougou/sail/pkg/models"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +29,7 @@ func NewCmdConfUpdate(sailOption *models.SailOption) *cobra.Command {
 
 	cmd.Flags().StringVarP(&o.ZoneName, "zone", "z", o.ZoneName, "zone name")
 
-	cmd.Flags().StringArrayVarP(&o.Hosts, "hosts", "", nil, "the hosts")
+	cmd.Flags().StringArrayVarP(&o.Hosts, "hosts", "", nil, "host string, eg: --hosts A,B/10.0.0.1,10.0.0.2 --hosts +C/10.0.0.3,10.0.0.4 --hosts -C,D,E/10.0.0.4 --hosts 10.0.0.1")
 	cmd.Flags().StringArrayVarP(&o.Components, "components", "c", nil, "enable components")
 	cmd.Flags().StringArrayVarP(&o.NoComponents, "no-components", "", nil, "disable components")
 	cmd.Flags().StringArrayVarP(&o.ExternalComponents, "external-components", "", nil, "enable external components")
